@@ -1,0 +1,96 @@
+{
+  "request_id": "demo-session-001",
+  "schema_version": "1.0",
+  "generated_at": "2026-04-22T04:51:08.674273381Z",
+  "source": "runtime-java-matcher-cli",
+  "scan_mode": "full",
+  "matches": [
+    {
+      "inventory_id": "runtime-java:component-1",
+      "component_ref": "runtime-java:component-1",
+      "component": {
+        "package_type": "maven",
+        "group_id": "org.apache.logging.log4j",
+        "artifact_id": "log4j-core",
+        "version": "2.14.1",
+        "runtime_path": "/srv/demo/lib/log4j-core-2.14.1.jar",
+        "evidence_source": "pom.properties",
+        "confidence": "high"
+      },
+      "match_confidence": "high",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2021-44228",
+          "severity": "critical",
+          "title": "Log4Shell 远程代码执行",
+          "description": "当 log4j-core 版本落在高危区间时，可能导致远程代码执行。",
+          "affected_range": "\u003e=2.0,\u003c2.15.0",
+          "fixed_versions": [
+            "2.15.0",
+            "2.17.1"
+          ],
+          "references": [
+            "https://logging.apache.org/log4j/2.x/security.html",
+            "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+          ],
+          "source": "local-vulndb",
+          "operation": "upsert",
+          "match_confidence": "high",
+          "matched_at": "2026-04-22T04:51:08.674279503Z"
+        },
+        {
+          "id": "CVE-2021-45046",
+          "severity": "high",
+          "title": "Log4j 信息泄露 / 拒绝服务问题",
+          "description": "特定配置下存在进一步风险。",
+          "affected_range": "\u003e=2.0,\u003c2.16.0",
+          "fixed_versions": [
+            "2.16.0",
+            "2.17.1"
+          ],
+          "references": [
+            "https://logging.apache.org/log4j/2.x/security.html"
+          ],
+          "source": "local-vulndb",
+          "operation": "upsert",
+          "match_confidence": "high",
+          "matched_at": "2026-04-22T04:51:08.674284905Z"
+        }
+      ]
+    },
+    {
+      "inventory_id": "runtime-java:component-2",
+      "component_ref": "runtime-java:component-2",
+      "component": {
+        "package_type": "maven",
+        "purl": "pkg:maven/org.springframework/spring-core@5.3.17",
+        "group_id": "org.springframework",
+        "artifact_id": "spring-core",
+        "version": "5.3.17",
+        "runtime_path": "/srv/demo/lib/spring-core-5.3.17.jar",
+        "evidence_source": "manifest",
+        "confidence": "medium"
+      },
+      "match_confidence": "high",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-22965",
+          "severity": "critical",
+          "title": "Spring Framework RCE",
+          "description": "特定部署条件下可导致远程代码执行。",
+          "affected_range": "\u003e=5.3.0,\u003c5.3.18",
+          "fixed_versions": [
+            "5.3.18"
+          ],
+          "references": [
+            "https://spring.io/security/cve-2022-22965"
+          ],
+          "source": "local-vulndb",
+          "operation": "upsert",
+          "match_confidence": "high",
+          "matched_at": "2026-04-22T04:51:08.674290953Z"
+        }
+      ]
+    }
+  ]
+}

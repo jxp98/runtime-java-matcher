@@ -1,0 +1,113 @@
+package api
+
+import "time"
+
+type MatchRequest struct {
+	RequestID     string           `json:"request_id"`
+	SchemaVersion string           `json:"schema_version"`
+	MatcherSource string           `json:"matcher_source,omitempty"`
+	ScanMode      string           `json:"scan_mode,omitempty"`
+	Agent         Agent            `json:"agent"`
+	Cluster       Cluster          `json:"cluster,omitempty"`
+	Components    []ComponentInput `json:"components"`
+}
+
+type Agent struct {
+	ID           string   `json:"id"`
+	Name         string   `json:"name,omitempty"`
+	Version      string   `json:"version,omitempty"`
+	Hostname     string   `json:"hostname,omitempty"`
+	Architecture string   `json:"architecture,omitempty"`
+	Groups       []string `json:"groups,omitempty"`
+	OS           OSInfo   `json:"os,omitempty"`
+}
+
+type Cluster struct {
+	Name string `json:"name,omitempty"`
+	Node string `json:"node,omitempty"`
+}
+
+type OSInfo struct {
+	Name     string `json:"name,omitempty"`
+	Platform string `json:"platform,omitempty"`
+	Type     string `json:"type,omitempty"`
+	Version  string `json:"version,omitempty"`
+}
+
+type ComponentInput struct {
+	InventoryID     string `json:"_inventory_id,omitempty"`
+	DocumentVersion uint64 `json:"_document_version,omitempty"`
+	InventoryIndex  string `json:"_inventory_index,omitempty"`
+	PackageType     string `json:"package_type,omitempty"`
+	PURL            string `json:"purl,omitempty"`
+	GroupID         string `json:"group_id,omitempty"`
+	ArtifactID      string `json:"artifact_id,omitempty"`
+	Version         string `json:"version,omitempty"`
+	VersionAlt      string `json:"version_,omitempty"`
+	RuntimePath     string `json:"runtime_path,omitempty"`
+	ArchivePath     string `json:"archive_path,omitempty"`
+	EvidenceSource  string `json:"evidence_source,omitempty"`
+	Confidence      string `json:"confidence,omitempty"`
+	SHA1            string `json:"sha1,omitempty"`
+	SHA256          string `json:"sha256,omitempty"`
+	DiscoveredAt    string `json:"discovered_at,omitempty"`
+}
+
+type MatchResponse struct {
+	RequestID     string       `json:"request_id"`
+	SchemaVersion string       `json:"schema_version"`
+	GeneratedAt   string       `json:"generated_at"`
+	Source        string       `json:"source"`
+	ScanMode      string       `json:"scan_mode,omitempty"`
+	Matches       []MatchEntry `json:"matches"`
+}
+
+type MatchEntry struct {
+	InventoryID     string          `json:"inventory_id,omitempty"`
+	ComponentRef    string          `json:"component_ref,omitempty"`
+	Component       NormalizedComp  `json:"component"`
+	MatchConfidence string          `json:"match_confidence"`
+	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
+}
+
+type NormalizedComp struct {
+	PackageType    string `json:"package_type,omitempty"`
+	PURL           string `json:"purl,omitempty"`
+	GroupID        string `json:"group_id,omitempty"`
+	ArtifactID     string `json:"artifact_id,omitempty"`
+	Version        string `json:"version,omitempty"`
+	RuntimePath    string `json:"runtime_path,omitempty"`
+	ArchivePath    string `json:"archive_path,omitempty"`
+	EvidenceSource string `json:"evidence_source,omitempty"`
+	Confidence     string `json:"confidence,omitempty"`
+	SHA1           string `json:"sha1,omitempty"`
+	SHA256         string `json:"sha256,omitempty"`
+}
+
+type Vulnerability struct {
+	ID              string   `json:"id"`
+	Severity        string   `json:"severity,omitempty"`
+	Title           string   `json:"title,omitempty"`
+	Description     string   `json:"description,omitempty"`
+	AffectedRange   string   `json:"affected_range,omitempty"`
+	FixedVersions   []string `json:"fixed_versions,omitempty"`
+	References      []string `json:"references,omitempty"`
+	Source          string   `json:"source,omitempty"`
+	Operation       string   `json:"operation,omitempty"`
+	MatchConfidence string   `json:"match_confidence,omitempty"`
+	MatchedAt       string   `json:"matched_at,omitempty"`
+}
+
+type HealthResponse struct {
+	Status              string `json:"status"`
+	Database            string `json:"database"`
+	PackageSize         int    `json:"package_size"`
+	DatabaseFormat      string `json:"database_format,omitempty"`
+	DatabaseSource      string `json:"database_source,omitempty"`
+	DatabaseVersion     string `json:"database_version,omitempty"`
+	DatabaseGeneratedAt string `json:"database_generated_at,omitempty"`
+}
+
+func NowISO8601() string {
+	return time.Now().UTC().Format(time.RFC3339Nano)
+}

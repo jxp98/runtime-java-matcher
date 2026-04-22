@@ -1,0 +1,22 @@
+# Go caches and test artifacts
+.gocache/
+coverage.out
+*.test
+
+# Local build outputs
+.out/
+bin/
+dist/
+/runtime-java-matcher
+/server
+/matchcli
+
+# Local debug files
+/request.json
+/response.json
+*.log
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store

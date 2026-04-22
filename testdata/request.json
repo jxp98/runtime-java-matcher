@@ -1,0 +1,45 @@
+{
+  "request_id": "demo-session-001",
+  "schema_version": "1.0",
+  "matcher_source": "trivy-java",
+  "scan_mode": "full",
+  "agent": {
+    "id": "001",
+    "name": "demo-host",
+    "version": "4.12.0",
+    "hostname": "demo-host",
+    "architecture": "x86_64",
+    "os": {
+      "name": "Ubuntu",
+      "platform": "ubuntu",
+      "type": "linux",
+      "version": "22.04"
+    },
+    "groups": ["default"]
+  },
+  "cluster": {
+    "name": "wazuh",
+    "node": "manager-1"
+  },
+  "components": [
+    {
+      "_inventory_id": "runtime-java:component-1",
+      "package_type": "maven",
+      "group_id": "org.apache.logging.log4j",
+      "artifact_id": "log4j-core",
+      "version": "2.14.1",
+      "runtime_path": "/srv/demo/lib/log4j-core-2.14.1.jar",
+      "sha1": "c5a52d75b03c4d197b35446d5cd0e7f85a8e986b",
+      "evidence_source": "pom.properties",
+      "confidence": "high"
+    },
+    {
+      "_inventory_id": "runtime-java:component-2",
+      "package_type": "maven",
+      "purl": "pkg:maven/org.springframework/spring-core@5.3.17",
+      "runtime_path": "/srv/demo/lib/spring-core-5.3.17.jar",
+      "evidence_source": "manifest",
+      "confidence": "medium"
+    }
+  ]
+}

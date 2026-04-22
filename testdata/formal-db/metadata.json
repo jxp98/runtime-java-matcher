@@ -1,0 +1,6 @@
+{
+  "format": "runtime-java-bundle",
+  "source": "trivy-java-export",
+  "version": "2025.01.0",
+  "generated_at": "2025-01-01T00:00:00Z"
+}
