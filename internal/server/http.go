@@ -6,26 +6,20 @@ import (
 	"net/http"
 
 	"runtime-java-matcher/internal/api"
-	"runtime-java-matcher/internal/db"
-	"runtime-java-matcher/internal/matcher"
 )
 
-func NewMux(service *matcher.Service, dbPath string, packageSize int, metadata db.Metadata, logger *log.Logger) http.Handler {
+type Matcher interface {
+	Match(request api.MatchRequest) api.MatchResponse
+}
+
+func NewMux(service Matcher, health api.HealthResponse, logger *log.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeError(w, http.StatusMethodNotAllowed, "仅支持 GET")
 			return
 		}
-		writeJSON(w, http.StatusOK, api.HealthResponse{
-			Status:              "ok",
-			Database:            dbPath,
-			PackageSize:         packageSize,
-			DatabaseFormat:      metadata.Format,
-			DatabaseSource:      metadata.Source,
-			DatabaseVersion:     metadata.Version,
-			DatabaseGeneratedAt: metadata.GeneratedAt,
-		})
+		writeJSON(w, http.StatusOK, health)
 	})
 	mux.HandleFunc("/runtime-java/match", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

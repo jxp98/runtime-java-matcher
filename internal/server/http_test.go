@@ -18,7 +18,17 @@ func TestHealthz(t *testing.T) {
 	if err != nil {
 		t.Fatalf("db.Load failed: %v", err)
 	}
-	mux := NewMux(matcher.New(index, "test-matcher"), "../../testdata/formal-db", index.Size(), index.Metadata(), nil)
+	metadata := index.Metadata()
+	mux := NewMux(matcher.New(index, "test-matcher"), api.HealthResponse{
+		Status:              "ok",
+		Backend:             "bundle",
+		Database:            "../../testdata/formal-db",
+		PackageSize:         index.Size(),
+		DatabaseFormat:      metadata.Format,
+		DatabaseSource:      metadata.Source,
+		DatabaseVersion:     metadata.Version,
+		DatabaseGeneratedAt: metadata.GeneratedAt,
+	}, nil)
 	request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	response := httptest.NewRecorder()
 
@@ -44,7 +54,12 @@ func TestMatchEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("db.Load failed: %v", err)
 	}
-	mux := NewMux(matcher.New(index, "test-matcher"), "../../testdata/vulndb.json", index.Size(), index.Metadata(), nil)
+	mux := NewMux(matcher.New(index, "test-matcher"), api.HealthResponse{
+		Status:      "ok",
+		Backend:     "bundle",
+		Database:    "../../testdata/vulndb.json",
+		PackageSize: index.Size(),
+	}, nil)
 	body, err := os.ReadFile("../../testdata/request.json")
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
@@ -64,5 +79,71 @@ func TestMatchEndpoint(t *testing.T) {
 	}
 	if len(matchResponse.Matches) != 2 {
 		t.Fatalf("expected 2 matches, got %d", len(matchResponse.Matches))
+	}
+}
+
+func TestMatchEndpointWithRawInventoryComponent(t *testing.T) {
+	index, err := db.Load("../../testdata/vulndb.json")
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+	mux := NewMux(matcher.New(index, "test-matcher"), api.HealthResponse{
+		Status:      "ok",
+		Backend:     "bundle",
+		Database:    "../../testdata/vulndb.json",
+		PackageSize: index.Size(),
+	}, nil)
+
+	body := []byte(`{
+	  "request_id": "raw-session-001",
+	  "schema_version": "1.0",
+	  "scan_mode": "full",
+	  "agent": {"id": "001"},
+	  "components": [
+	    {
+	      "_inventory_id": "runtime-java:raw-1",
+	      "_document_version": 1,
+	      "_inventory_index": "wazuh-states-inventory-runtime-java-components",
+	      "package": {
+	        "name": "log4j-core",
+	        "type": "jar",
+	        "version": "2.14.1"
+	      },
+	      "file": {
+	        "path": "/srv/app/lib/log4j-core-2.14.1.jar",
+	        "hash": {
+	          "sha1": "c5a52d75b03c4d197b35446d5cd0e7f85a8e986b"
+	        }
+	      },
+	      "wazuh": {
+	        "runtime_java": {
+	          "group_id": "org.apache.logging.log4j",
+	          "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+	          "evidence_source": "pom.properties",
+	          "confidence": "high",
+	          "archive_path": "/srv/app/demo-app.jar"
+	        }
+	      }
+	    }
+	  ]
+	}`)
+	request := httptest.NewRequest(http.MethodPost, "/runtime-java/match", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", response.Code)
+	}
+
+	var matchResponse api.MatchResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &matchResponse); err != nil {
+		t.Fatalf("json.Unmarshal failed: %v", err)
+	}
+	if len(matchResponse.Matches) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(matchResponse.Matches))
+	}
+	if len(matchResponse.Matches[0].Vulnerabilities) == 0 {
+		t.Fatal("expected vulnerabilities for raw inventory input")
 	}
 }

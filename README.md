@@ -104,7 +104,7 @@ testdata/formal-db/
 
 ## 与 Trivy 的衔接建议
 
-当前 matcher 还没有直接内嵌 Trivy 的漏洞库读取代码，但已经把数据源能力从“样例单文件”升级成了“可维护的正式 bundle 目录”。
+当前 matcher 现在支持两种数据面：一是现有的 bundle 目录，二是直接读取原始 `trivy.db + trivy-java.db` 的 `trivy-raw` 后端。
 
 如果要继续把这条路做成正式能力，建议直接参考项目级设计文档：`docs/runtime-java-trivy-bundle-design.md`。
 
@@ -253,6 +253,28 @@ go test ./...
 ## 当前边界
 
 - 这是最小可运行版本，不是完整 Trivy 替代品
-- 当前还没有直接读取 Trivy 原生 DB，而是为正式 Java advisory bundle 做了加载抽象
-- 当前版本比较实现是工程化近似版本，不是完整 Maven 语义实现
+- 当前已经支持直接读取 Trivy 原始 DB，也保留了 bundle 目录后端以便灰度切换
+- `bundle` 后端仍沿用工程化近似版本比较；`trivy-raw` 后端优先采用 Maven 语义约束匹配
 - 当前未实现删除语义推导；如需删除，manager 可依赖 full scan 清旧结果，或后续扩展 matcher 显式返回 `operation=delete`
+
+
+## 直接使用 Trivy 原始库（方案 B）
+
+如果你希望远端直接挂载原始 `trivy-db + trivy-java-db`，现在可以使用 `trivy-raw` 后端：
+
+```bash
+RUNTIME_JAVA_MATCHER_BACKEND="trivy-raw" RUNTIME_JAVA_MATCHER_TRIVY_CACHE_DIR="/opt/OWNHIDS/TRIVY-DB/trivy-cache" go run ./cmd/server
+```
+
+也支持分别指定两个库：
+
+```bash
+RUNTIME_JAVA_MATCHER_BACKEND="trivy-raw" RUNTIME_JAVA_MATCHER_TRIVY_VULN_DB="/opt/OWNHIDS/TRIVY-DB/trivy-cache/db" RUNTIME_JAVA_MATCHER_TRIVY_JAVA_DB="/opt/OWNHIDS/TRIVY-DB/trivy-cache/java-db" go run ./cmd/server
+```
+
+这个后端的关键行为是：
+
+- 直接读取 `trivy.db` 中的 Maven advisory，而不是先导出 bundle
+- 直接读取 `trivy-java.db` 做 `sha1 -> groupId:artifactId:version` 补全
+- 对版本命中逻辑优先贴近 Trivy Maven 约束语义
+- 兼容 manager 传来的“原始 inventory 文档”输入，而不要求先改成扁平组件 JSON
