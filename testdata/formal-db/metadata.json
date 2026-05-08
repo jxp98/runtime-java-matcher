@@ -1,6 +1,11 @@
 {
+  "advisory_source": "trivy-db",
   "format": "runtime-java-bundle",
+  "generated_at": "2026-05-08T00:00:00Z",
+  "java_identity_source": "",
+  "package_count": 6,
+  "schema_version": "1",
   "source": "trivy-java-export",
-  "version": "2025.01.0",
-  "generated_at": "2025-01-01T00:00:00Z"
+  "version": "2026.05.0-seed1",
+  "vulnerability_count": 11
 }

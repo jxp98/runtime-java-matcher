@@ -15,10 +15,16 @@ func TestLoadBundleDirectory(t *testing.T) {
 	if metadata.Source != "trivy-java-export" {
 		t.Fatalf("expected source trivy-java-export, got %s", metadata.Source)
 	}
-	if index.Size() != 3 {
-		t.Fatalf("expected 3 package records, got %d", index.Size())
+	if index.Size() < 6 {
+		t.Fatalf("expected at least 6 package records, got %d", index.Size())
 	}
 	if len(index.FindByGA("org.apache.logging.log4j", "log4j-core")) != 1 {
 		t.Fatalf("expected one log4j-core record")
+	}
+	if len(index.FindByGA("org.springframework", "spring-beans")) != 1 {
+		t.Fatalf("expected one spring-beans record")
+	}
+	if len(index.FindByGA("org.apache.tomcat", "tomcat-jdbc")) != 1 {
+		t.Fatalf("expected one tomcat-jdbc record")
 	}
 }

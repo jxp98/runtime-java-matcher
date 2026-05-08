@@ -1,0 +1,12 @@
+- bucket: data-source
+  pairs:
+    - key: "maven::GitHub Security Advisory Maven"
+      value:
+        ID: "ghsa"
+        Name: "GitHub Security Advisory Maven"
+        URL: "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Amaven"
+    - key: "maven::GitLab Advisory Database Community"
+      value:
+        ID: "glad"
+        Name: "GitLab Advisory Database Community"
+        URL: "https://gitlab.com/gitlab-org/advisories-community"

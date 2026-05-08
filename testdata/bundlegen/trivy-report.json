@@ -1,0 +1,42 @@
+{
+  "Results": [
+    {
+      "Target": "tomcat-libs",
+      "Type": "jar",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2024-56337",
+          "PkgName": "Apache Tomcat JDBC Connection Pool",
+          "InstalledVersion": "8.5.82",
+          "FixedVersion": "8.5.95, 9.0.10",
+          "Severity": "HIGH",
+          "Title": "Tomcat JDBC 示例漏洞",
+          "Description": "来自 Trivy 报告的示例漏洞。",
+          "PrimaryURL": "https://example.invalid/tomcat-jdbc",
+          "PkgIdentifier": {
+            "PURL": "pkg:maven/org.apache.tomcat/tomcat-jdbc@8.5.82"
+          },
+          "DataSource": {
+            "ID": "ghsa"
+          }
+        },
+        {
+          "VulnerabilityID": "CVE-2024-00001",
+          "PkgName": "Eclipse Compiler for Java(TM)",
+          "InstalledVersion": "3.12.3.v20170228-1205",
+          "FixedVersion": "3.13.0",
+          "Severity": "MEDIUM",
+          "Title": "ECJ 示例漏洞",
+          "Description": "来自 Trivy 报告的 ECJ 示例漏洞。",
+          "PrimaryURL": "https://example.invalid/ecj",
+          "PkgIdentifier": {
+            "PURL": "pkg:maven/org.eclipse.jdt.core.compiler/ecj@3.12.3.v20170228-1205"
+          },
+          "DataSource": {
+            "ID": "nvd"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -91,6 +91,42 @@ func TestServiceMatchAcceptsVersionAltField(t *testing.T) {
 	}
 }
 
+func TestServiceMatchWithFormalDBAliasArtifact(t *testing.T) {
+	index, err := db.Load("../../testdata/formal-db")
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+
+	service := New(index, "test-matcher")
+	response := service.Match(api.MatchRequest{
+		RequestID:     "session-formal-alias-1",
+		SchemaVersion: "1.0",
+		ScanMode:      "full",
+		Agent:         api.Agent{ID: "001"},
+		Components: []api.ComponentInput{
+			{
+				InventoryID:    "runtime-java:alias-1",
+				GroupID:        "org.apache.tomcat",
+				ArtifactID:     "Apache Tomcat JDBC Connection Pool",
+				Version:        "8.5.82",
+				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/tomcat-jdbc.jar",
+				EvidenceSource: "manifest",
+				Confidence:     "medium",
+			},
+		},
+	})
+
+	if len(response.Matches) != 1 {
+		t.Fatalf("expected 1 alias match, got %d", len(response.Matches))
+	}
+	if len(response.Matches[0].Vulnerabilities) == 0 {
+		t.Fatal("expected alias vulnerability match, got none")
+	}
+	if response.Matches[0].Vulnerabilities[0].ID != "CVE-2024-56337" {
+		t.Fatalf("unexpected alias vulnerability id: %s", response.Matches[0].Vulnerabilities[0].ID)
+	}
+}
+
 func TestServiceMatchBySHA1(t *testing.T) {
 	index, err := db.Load("../../testdata/vulndb.json")
 	if err != nil {

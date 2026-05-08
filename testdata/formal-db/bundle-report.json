@@ -1,0 +1,28 @@
+{
+  "format": "runtime-java-bundle",
+  "source": "trivy-java-export",
+  "version": "2026.05.0-seed1",
+  "generated_at": "2026-05-08T00:00:00Z",
+  "schema_version": "1",
+  "advisory_source": "trivy-db",
+  "package_count": 6,
+  "vulnerability_count": 11,
+  "shard_count": 1,
+  "input_files": [
+    "/opt/vibeCoding/Secspace/OWNHIDS/runtime-java-matcher/.tmp.seed.Yfm68D/trivy-advisory-export.json",
+    "testdata/bundlegen/trivy-integration-reports/gradle.json.golden",
+    "testdata/bundlegen/trivy-integration-reports/pom.json.golden",
+    "testdata/bundlegen/trivy-integration-reports/sbt.json.golden",
+    "testdata/bundlegen/trivy-integration-reports/spring4shell-jre11.json.golden",
+    "testdata/bundlegen/trivy-integration-reports/spring4shell-jre8.json.golden",
+    "testdata/bundlegen/trivy-report.json",
+    "testdata/formal-db/packages/maven-core.json"
+  ],
+  "shards": [
+    {
+      "file_path": "packages/packages-0001.json",
+      "package_count": 6,
+      "vulnerability_count": 11
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "trivy-advisory-export/v1",
+  "source": "trivy-db",
+  "packages": [
+    {
+      "package_type": "maven",
+      "group_id": "org.apache.logging.log4j",
+      "artifact_id": "log4j-core",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core",
+      "source": "ghsa",
+      "vulnerabilities": [
+        {
+          "vulnerability_id": "CVE-2021-44228",
+          "severity": "CRITICAL",
+          "title": "Log4Shell",
+          "description": "正式 advisory 导出示例。",
+          "vulnerable_versions": [
+            ">=2.0,<2.15.0",
+            ">=2.16.0,<2.17.0"
+          ],
+          "patched_versions": [
+            "2.15.0",
+            "2.17.0"
+          ],
+          "references": [
+            "https://github.com/advisories/GHSA-jfh8-c2jp-5v3q"
+          ]
+        }
+      ]
+    },
+    {
+      "package_type": "maven",
+      "group_id": "org.springframework",
+      "artifact_id": "spring-core",
+      "purl": "pkg:maven/org.springframework/spring-core",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-22965",
+          "severity": "CRITICAL",
+          "title": "Spring4Shell",
+          "description": "正式 advisory 导出示例。",
+          "vulnerable_versions": [
+            ">=5.3.0,<5.3.18"
+          ],
+          "patched_versions": [
+            "5.3.18"
+          ],
+          "references": [
+            "https://spring.io/security/cve-2022-22965"
+          ],
+          "source": "nvd"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "packages": [
+    {
+      "package_type": "maven",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind",
+      "group_id": "com.fasterxml.jackson.core",
+      "artifact_id": "jackson-databind",
+      "source": "ghsa,glad",
+      "aliases": [
+        {
+          "group_id": "com.fasterxml.jackson.core",
+          "artifact_id": "com.fasterxml.jackson.core:jackson-databind"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2020-9548",
+          "severity": "critical",
+          "title": "jackson-databind: Serialization gadgets in anteros-core",
+          "description": "FasterXML jackson-databind 2.x before 2.9.10.4 mishandles the interaction between serialization gadgets and typing, related to br.com.anteros.dbcp.AnterosDBCPConfig (aka anteros-core).",
+          "affected_range": "2.9.1",
+          "fixed_versions": [
+            "2.9.10.4"
+          ],
+          "references": [
+            "https://access.redhat.com/security/cve/cve-2020-9548",
+            "https://avd.aquasec.com/nvd/cve-2020-9548",
+            "https://github.com/advisories/ghsa-p43x-xfjf-5jhr",
+            "https://github.com/fasterxml/jackson-databind/issues/2634",
+            "https://lists.apache.org/thread.html/r35d30db00440ef63b791c4b7f7acb036e14d4a23afa2a249cb66c0fd@%3cissues.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/r9464a40d25c3ba1a55622db72f113eb494a889656962d098c70c5bb1@%3cdev.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/r98c9b6e4c9e17792e2cd1ec3e4aa20b61a791939046d3f10888176bb@%3cissues.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/rb6fecb5e96a6d61e175ff49f33f2713798dd05cf03067c169d195596@%3cissues.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/rd5a4457be4623038c3989294429bc063eec433a2e55995d81591e2ca@%3cissues.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/rdd49ab9565bec436a896bc00c4b9fc9dce1598e106c318524fbdfec6@%3cissues.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/rdd4df698d5d8e635144d2994922bf0842e933809eae259521f3b5097@%3cissues.zookeeper.apache.org%3e",
+            "https://lists.apache.org/thread.html/rf1bbc0ea4a9f014cf94df9a12a6477d24a27f52741dbc87f2fd52ff2@%3cissues.geode.apache.org%3e",
+            "https://lists.debian.org/debian-lts-announce/2020/03/msg00008.html",
+            "https://medium.com/@cowtowncoder/on-jackson-cves-dont-panic-here-is-what-you-need-to-know-54cd0d6e8062",
+            "https://nvd.nist.gov/vuln/detail/cve-2020-9548",
+            "https://security.netapp.com/advisory/ntap-20200904-0006/",
+            "https://www.oracle.com/security-alerts/cpujan2021.html",
+            "https://www.oracle.com/security-alerts/cpujul2020.html",
+            "https://www.oracle.com/security-alerts/cpuoct2020.html",
+            "https://www.oracle.com/security-alerts/cpuoct2021.html"
+          ],
+          "operation": "upsert"
+        },
+        {
+          "id": "CVE-2020-9548",
+          "affected_range": "\u003e=2.0.0,\u003c=2.9.10.3",
+          "fixed_versions": [
+            "2.9.10.4"
+          ],
+          "operation": "upsert"
+        },
+        {
+          "id": "CVE-2021-20190",
+          "severity": "high",
+          "title": "jackson-databind: mishandles the interaction between serialization gadgets and typing, related to javax.swing",
+          "description": "A flaw was found in jackson-databind before 2.9.10.7. FasterXML mishandles the interaction between serialization gadgets and typing. The highest threat from this vulnerability is to data confidentiality and integrity as well as system availability.",
+          "affected_range": "2.9.1",
+          "fixed_versions": [
+            "2.9.10.7"
+          ],
+          "references": [
+            "https://access.redhat.com/security/cve/cve-2021-20190",
+            "https://avd.aquasec.com/nvd/cve-2021-20190",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=1916633",
+            "https://github.com/advisories/ghsa-5949-rw7g-wx7w",
+            "https://github.com/fasterxml/jackson-databind/commit/7dbf51bf78d157098074a20bd9da39bd48c18e4a",
+            "https://github.com/fasterxml/jackson-databind/issues/2854",
+            "https://lists.apache.org/thread.html/r380e9257bacb8551ee6fcf2c59890ae9477b2c78e553fa9ea08e9d9a@%3ccommits.nifi.apache.org%3e",
+            "https://lists.debian.org/debian-lts-announce/2021/04/msg00025.html",
+            "https://nvd.nist.gov/vuln/detail/cve-2021-20190",
+            "https://security.netapp.com/advisory/ntap-20210219-0008/"
+          ],
+          "operation": "upsert"
+        },
+        {
+          "id": "CVE-2021-20190",
+          "affected_range": "[2.9.0,2.9.10.7)",
+          "fixed_versions": [
+            "2.9.10.7"
+          ],
+          "operation": "upsert"
+        },
+        {
+          "id": "CVE-2022-42003",
+          "severity": "high",
+          "affected_range": "\u003e=2.13.0,\u003c2.13.4.1",
+          "fixed_versions": [
+            "2.13.4.1"
+          ],
+          "references": [
+            "https://github.com/fasterxml/jackson-databind/security/advisories/ghsa-8xqf-g4mh-5xgc"
+          ]
+        }
+      ]
+    },
+    {
+      "package_type": "maven",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core",
+      "group_id": "org.apache.logging.log4j",
+      "artifact_id": "log4j-core",
+      "sha1": [
+        "c5a52d75b03c4d197b35446d5cd0e7f85a8e986b"
+      ],
+      "source": "ghsa",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2021-44228",
+          "severity": "critical",
+          "title": "Log4Shell",
+          "affected_range": "\u003e=2.0,\u003c2.15.0",
+          "fixed_versions": [
+            "2.15.0"
+          ],
+          "references": [
+            "https://github.com/advisories/ghsa-jfh8-c2jp-5v3q"
+          ]
+        }
+      ]
+    },
+    {
+      "package_type": "maven",
+      "purl": "pkg:maven/org.apache.tomcat/tomcat-jdbc",
+      "group_id": "org.apache.tomcat",
+      "artifact_id": "tomcat-jdbc",
+      "source": "ghsa",
+      "aliases": [
+        {
+          "group_id": "org.apache.tomcat",
+          "artifact_id": "Apache Tomcat JDBC Connection Pool"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2024-56337",
+          "severity": "high",
+          "title": "Tomcat JDBC 示例漏洞",
+          "description": "来自 Trivy 报告的示例漏洞。",
+          "affected_range": "8.5.82",
+          "fixed_versions": [
+            "8.5.95",
+            "9.0.10"
+          ],
+          "references": [
+            "https://example.invalid/tomcat-jdbc"
+          ],
+          "operation": "upsert"
+        }
+      ]
+    },
+    {
+      "package_type": "maven",
+      "purl": "pkg:maven/org.eclipse.jdt.core.compiler/ecj",
+      "group_id": "org.eclipse.jdt.core.compiler",
+      "artifact_id": "ecj",
+      "source": "nvd",
+      "aliases": [
+        {
+          "group_id": "org.eclipse.jdt.core.compiler",
+          "artifact_id": "Eclipse Compiler for Java(TM)"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2024-00001",
+          "severity": "medium",
+          "title": "ECJ 示例漏洞",
+          "description": "来自 Trivy 报告的 ECJ 示例漏洞。",
+          "affected_range": "3.12.3.v20170228-1205",
+          "fixed_versions": [
+            "3.13.0"
+          ],
+          "references": [
+            "https://example.invalid/ecj"
+          ],
+          "operation": "upsert"
+        }
+      ]
+    },
+    {
+      "package_type": "maven",
+      "purl": "pkg:maven/org.springframework/spring-beans",
+      "group_id": "org.springframework",
+      "artifact_id": "spring-beans",
+      "source": "ghsa",
+      "aliases": [
+        {
+          "group_id": "org.springframework",
+          "artifact_id": "org.springframework:spring-beans"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-22965",
+          "severity": "critical",
+          "title": "spring-framework: RCE via Data Binding on JDK 9+",
+          "description": "A Spring MVC or Spring WebFlux application running on JDK 9+ may be vulnerable to remote code execution (RCE) via data binding. The specific exploit requires the application to run on Tomcat as a WAR deployment. If the application is deployed as a Spring Boot executable jar, i.e. the default, it is not vulnerable to the exploit. However, the nature of the vulnerability is more general, and there may be other ways to exploit it.",
+          "affected_range": "5.3.15",
+          "fixed_versions": [
+            "5.3.18"
+          ],
+          "references": [
+            "https://avd.aquasec.com/nvd/cve-2022-22965",
+            "https://github.com/advisories/ghsa-36p3-wjmg-h94x"
+          ],
+          "operation": "upsert"
+        },
+        {
+          "id": "CVE-2022-22965",
+          "affected_range": "\u003e=5.3.0,\u003c5.3.18",
+          "fixed_versions": [
+            "5.3.18"
+          ],
+          "operation": "upsert"
+        }
+      ]
+    },
+    {
+      "package_type": "maven",
+      "purl": "pkg:maven/org.springframework/spring-core",
+      "group_id": "org.springframework",
+      "artifact_id": "spring-core",
+      "sha1": [
+        "50a151700885104778a7712d2488efeb77f9908b"
+      ],
+      "source": "nvd",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-22965",
+          "severity": "critical",
+          "title": "Spring4Shell",
+          "affected_range": "\u003e=5.3.0,\u003c5.3.18",
+          "fixed_versions": [
+            "5.3.18"
+          ],
+          "references": [
+            "https://spring.io/security/cve-2022-22965"
+          ]
+        }
+      ]
+    }
+  ]
+}
