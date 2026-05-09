@@ -266,3 +266,89 @@ func TestServiceDiagnoseClassifiesComponents(t *testing.T) {
 		t.Fatalf("unexpected third status: %s", response.Components[2].Status)
 	}
 }
+
+func TestServiceDiagnoseAddsConservativeNoiseHints(t *testing.T) {
+	index, err := db.Load("../../testdata/formal-db")
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+
+	service := New(index, "test-matcher")
+	response := service.Diagnose(api.MatchRequest{
+		RequestID:     "diagnose-noise-1",
+		SchemaVersion: "1.0",
+		ScanMode:      "full",
+		Agent:         api.Agent{ID: "001"},
+		Components: []api.ComponentInput{
+			{
+				InventoryID:           "runtime-java:bootstrap-1",
+				ArtifactID:            "bootstrap",
+				Version:               "8.5.82",
+				RuntimePath:           "/opt/apache-tomcat-8.5.82/bin/bootstrap.jar",
+				DiscoverySource:       "classpath",
+				EvidenceSource:        "filename",
+				IsDirectRuntimeTarget: boolPtr(false),
+				IsNested:              boolPtr(false),
+			},
+			{
+				InventoryID:           "runtime-java:juli-1",
+				GroupID:               "org.apache.tomcat",
+				ArtifactID:            "tomcat-juli",
+				Version:               "8.5.82",
+				RuntimePath:           "/opt/apache-tomcat-8.5.82/bin/tomcat-juli.jar",
+				DiscoverySource:       "fd",
+				EvidenceSource:        "filename",
+				IsDirectRuntimeTarget: boolPtr(false),
+				IsNested:              boolPtr(false),
+			},
+		},
+	})
+
+	if len(response.Components) != 2 {
+		t.Fatalf("unexpected component count: %d", len(response.Components))
+	}
+
+	bootstrap := response.Components[0]
+	if bootstrap.Status != api.MatchStatusIdentityUnresolved {
+		t.Fatalf("unexpected bootstrap status: %s", bootstrap.Status)
+	}
+	if !bootstrap.SuppressionCandidate {
+		t.Fatal("expected bootstrap to be marked as suppression candidate")
+	}
+	if bootstrap.SuppressionReason != "launcher_bin_archive_identity_unresolved" {
+		t.Fatalf("unexpected bootstrap suppression reason: %s", bootstrap.SuppressionReason)
+	}
+	if !containsString(bootstrap.NoiseFlags, "bin_directory_archive") {
+		t.Fatalf("expected bootstrap noise flags to include bin_directory_archive: %#v", bootstrap.NoiseFlags)
+	}
+	if !containsString(bootstrap.NoiseFlags, "launcher_like_archive") {
+		t.Fatalf("expected bootstrap noise flags to include launcher_like_archive: %#v", bootstrap.NoiseFlags)
+	}
+	if bootstrap.IsDirectRuntimeTarget == nil || *bootstrap.IsDirectRuntimeTarget {
+		t.Fatalf("unexpected bootstrap direct target flag: %#v", bootstrap.IsDirectRuntimeTarget)
+	}
+
+	juli := response.Components[1]
+	if juli.Status != api.MatchStatusNoAdvisory {
+		t.Fatalf("unexpected tomcat-juli status: %s", juli.Status)
+	}
+	if juli.SuppressionCandidate {
+		t.Fatal("did not expect tomcat-juli to be marked as suppression candidate")
+	}
+	if !containsString(juli.NoiseFlags, "filename_only_identity") {
+		t.Fatalf("expected tomcat-juli noise flags to include filename_only_identity: %#v", juli.NoiseFlags)
+	}
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}

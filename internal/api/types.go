@@ -48,47 +48,53 @@ type OSInfo struct {
 }
 
 type ComponentInput struct {
-	InventoryID     string `json:"_inventory_id,omitempty"`
-	DocumentVersion uint64 `json:"_document_version,omitempty"`
-	InventoryIndex  string `json:"_inventory_index,omitempty"`
-	PackageType     string `json:"package_type,omitempty"`
-	PackageName     string `json:"package_name,omitempty"`
-	PURL            string `json:"purl,omitempty"`
-	GroupID         string `json:"group_id,omitempty"`
-	ArtifactID      string `json:"artifact_id,omitempty"`
-	Version         string `json:"version,omitempty"`
-	VersionAlt      string `json:"version_,omitempty"`
-	RuntimePath     string `json:"runtime_path,omitempty"`
-	ArchivePath     string `json:"archive_path,omitempty"`
-	PathInArchive   string `json:"path_in_archive,omitempty"`
-	EvidenceSource  string `json:"evidence_source,omitempty"`
-	Confidence      string `json:"confidence,omitempty"`
-	SHA1            string `json:"sha1,omitempty"`
-	SHA256          string `json:"sha256,omitempty"`
-	DiscoveredAt    string `json:"discovered_at,omitempty"`
+	InventoryID           string `json:"_inventory_id,omitempty"`
+	DocumentVersion       uint64 `json:"_document_version,omitempty"`
+	InventoryIndex        string `json:"_inventory_index,omitempty"`
+	PackageType           string `json:"package_type,omitempty"`
+	PackageName           string `json:"package_name,omitempty"`
+	PURL                  string `json:"purl,omitempty"`
+	GroupID               string `json:"group_id,omitempty"`
+	ArtifactID            string `json:"artifact_id,omitempty"`
+	Version               string `json:"version,omitempty"`
+	VersionAlt            string `json:"version_,omitempty"`
+	RuntimePath           string `json:"runtime_path,omitempty"`
+	ArchivePath           string `json:"archive_path,omitempty"`
+	PathInArchive         string `json:"path_in_archive,omitempty"`
+	DiscoverySource       string `json:"discovery_source,omitempty"`
+	EvidenceSource        string `json:"evidence_source,omitempty"`
+	Confidence            string `json:"confidence,omitempty"`
+	IsDirectRuntimeTarget *bool  `json:"is_direct_runtime_target,omitempty"`
+	IsNested              *bool  `json:"is_nested,omitempty"`
+	SHA1                  string `json:"sha1,omitempty"`
+	SHA256                string `json:"sha256,omitempty"`
+	DiscoveredAt          string `json:"discovered_at,omitempty"`
 }
 
 func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 	type wireComponent struct {
-		InventoryID     string `json:"_inventory_id,omitempty"`
-		DocumentVersion uint64 `json:"_document_version,omitempty"`
-		InventoryIndex  string `json:"_inventory_index,omitempty"`
-		PackageType     string `json:"package_type,omitempty"`
-		PackageName     string `json:"package_name,omitempty"`
-		PURL            string `json:"purl,omitempty"`
-		GroupID         string `json:"group_id,omitempty"`
-		ArtifactID      string `json:"artifact_id,omitempty"`
-		Version         string `json:"version,omitempty"`
-		VersionAlt      string `json:"version_,omitempty"`
-		RuntimePath     string `json:"runtime_path,omitempty"`
-		ArchivePath     string `json:"archive_path,omitempty"`
-		PathInArchive   string `json:"path_in_archive,omitempty"`
-		EvidenceSource  string `json:"evidence_source,omitempty"`
-		Confidence      string `json:"confidence,omitempty"`
-		SHA1            string `json:"sha1,omitempty"`
-		SHA256          string `json:"sha256,omitempty"`
-		DiscoveredAt    string `json:"discovered_at,omitempty"`
-		Package         struct {
+		InventoryID           string `json:"_inventory_id,omitempty"`
+		DocumentVersion       uint64 `json:"_document_version,omitempty"`
+		InventoryIndex        string `json:"_inventory_index,omitempty"`
+		PackageType           string `json:"package_type,omitempty"`
+		PackageName           string `json:"package_name,omitempty"`
+		PURL                  string `json:"purl,omitempty"`
+		GroupID               string `json:"group_id,omitempty"`
+		ArtifactID            string `json:"artifact_id,omitempty"`
+		Version               string `json:"version,omitempty"`
+		VersionAlt            string `json:"version_,omitempty"`
+		RuntimePath           string `json:"runtime_path,omitempty"`
+		ArchivePath           string `json:"archive_path,omitempty"`
+		PathInArchive         string `json:"path_in_archive,omitempty"`
+		DiscoverySource       string `json:"discovery_source,omitempty"`
+		EvidenceSource        string `json:"evidence_source,omitempty"`
+		Confidence            string `json:"confidence,omitempty"`
+		IsDirectRuntimeTarget *bool  `json:"is_direct_runtime_target,omitempty"`
+		IsNested              *bool  `json:"is_nested,omitempty"`
+		SHA1                  string `json:"sha1,omitempty"`
+		SHA256                string `json:"sha256,omitempty"`
+		DiscoveredAt          string `json:"discovered_at,omitempty"`
+		Package               struct {
 			Type    string `json:"type,omitempty"`
 			Name    string `json:"name,omitempty"`
 			Version string `json:"version,omitempty"`
@@ -106,13 +112,16 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 		} `json:"checksum,omitempty"`
 		Wazuh struct {
 			RuntimeJava struct {
-				PURL           string `json:"purl,omitempty"`
-				GroupID        string `json:"group_id,omitempty"`
-				EvidenceSource string `json:"evidence_source,omitempty"`
-				Confidence     string `json:"confidence,omitempty"`
-				ArchivePath    string `json:"archive_path,omitempty"`
-				PathInArchive  string `json:"path_in_archive,omitempty"`
-				DiscoveredAt   string `json:"discovered_at,omitempty"`
+				PURL                  string `json:"purl,omitempty"`
+				GroupID               string `json:"group_id,omitempty"`
+				DiscoverySource       string `json:"discovery_source,omitempty"`
+				EvidenceSource        string `json:"evidence_source,omitempty"`
+				Confidence            string `json:"confidence,omitempty"`
+				ArchivePath           string `json:"archive_path,omitempty"`
+				PathInArchive         string `json:"path_in_archive,omitempty"`
+				IsDirectRuntimeTarget *bool  `json:"is_direct_runtime_target,omitempty"`
+				IsNested              *bool  `json:"is_nested,omitempty"`
+				DiscoveredAt          string `json:"discovered_at,omitempty"`
 			} `json:"runtime_java,omitempty"`
 		} `json:"wazuh,omitempty"`
 	}
@@ -123,24 +132,27 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 	}
 
 	*c = ComponentInput{
-		InventoryID:     strings.TrimSpace(value.InventoryID),
-		DocumentVersion: value.DocumentVersion,
-		InventoryIndex:  strings.TrimSpace(value.InventoryIndex),
-		PackageType:     firstNonEmpty(value.PackageType, value.Package.Type),
-		PackageName:     firstNonEmpty(value.PackageName, value.Package.Name),
-		PURL:            firstNonEmpty(value.PURL, value.Wazuh.RuntimeJava.PURL),
-		GroupID:         firstNonEmpty(value.GroupID, value.Wazuh.RuntimeJava.GroupID),
-		ArtifactID:      firstNonEmpty(value.ArtifactID, value.Package.Name),
-		Version:         firstNonEmpty(value.Version, value.VersionAlt, value.Package.Version),
-		VersionAlt:      strings.TrimSpace(value.VersionAlt),
-		RuntimePath:     firstNonEmpty(value.RuntimePath, value.File.Path),
-		ArchivePath:     firstNonEmpty(value.ArchivePath, value.Wazuh.RuntimeJava.ArchivePath),
-		PathInArchive:   firstNonEmpty(value.PathInArchive, value.Wazuh.RuntimeJava.PathInArchive),
-		EvidenceSource:  firstNonEmpty(value.EvidenceSource, value.Wazuh.RuntimeJava.EvidenceSource),
-		Confidence:      firstNonEmpty(value.Confidence, value.Wazuh.RuntimeJava.Confidence),
-		SHA1:            firstNonEmpty(value.SHA1, value.File.Hash.SHA1, value.Checksum.Hash.SHA1),
-		SHA256:          strings.TrimSpace(value.SHA256),
-		DiscoveredAt:    firstNonEmpty(value.DiscoveredAt, value.Wazuh.RuntimeJava.DiscoveredAt),
+		InventoryID:           strings.TrimSpace(value.InventoryID),
+		DocumentVersion:       value.DocumentVersion,
+		InventoryIndex:        strings.TrimSpace(value.InventoryIndex),
+		PackageType:           firstNonEmpty(value.PackageType, value.Package.Type),
+		PackageName:           firstNonEmpty(value.PackageName, value.Package.Name),
+		PURL:                  firstNonEmpty(value.PURL, value.Wazuh.RuntimeJava.PURL),
+		GroupID:               firstNonEmpty(value.GroupID, value.Wazuh.RuntimeJava.GroupID),
+		ArtifactID:            firstNonEmpty(value.ArtifactID, value.Package.Name),
+		Version:               firstNonEmpty(value.Version, value.VersionAlt, value.Package.Version),
+		VersionAlt:            strings.TrimSpace(value.VersionAlt),
+		RuntimePath:           firstNonEmpty(value.RuntimePath, value.File.Path),
+		ArchivePath:           firstNonEmpty(value.ArchivePath, value.Wazuh.RuntimeJava.ArchivePath),
+		PathInArchive:         firstNonEmpty(value.PathInArchive, value.Wazuh.RuntimeJava.PathInArchive),
+		DiscoverySource:       firstNonEmpty(value.DiscoverySource, value.Wazuh.RuntimeJava.DiscoverySource),
+		EvidenceSource:        firstNonEmpty(value.EvidenceSource, value.Wazuh.RuntimeJava.EvidenceSource),
+		Confidence:            firstNonEmpty(value.Confidence, value.Wazuh.RuntimeJava.Confidence),
+		IsDirectRuntimeTarget: firstNonNilBool(value.IsDirectRuntimeTarget, value.Wazuh.RuntimeJava.IsDirectRuntimeTarget),
+		IsNested:              firstNonNilBool(value.IsNested, value.Wazuh.RuntimeJava.IsNested),
+		SHA1:                  firstNonEmpty(value.SHA1, value.File.Hash.SHA1, value.Checksum.Hash.SHA1),
+		SHA256:                strings.TrimSpace(value.SHA256),
+		DiscoveredAt:          firstNonEmpty(value.DiscoveredAt, value.Wazuh.RuntimeJava.DiscoveredAt),
 	}
 
 	return nil
@@ -184,18 +196,25 @@ type MatchDiagnosticsSummary struct {
 }
 
 type ComponentDiagnostic struct {
-	InventoryID        string         `json:"inventory_id,omitempty"`
-	Component          NormalizedComp `json:"component"`
-	Status             string         `json:"status"`
-	MatchConfidence    string         `json:"match_confidence,omitempty"`
-	ResolutionSource   string         `json:"resolution_source,omitempty"`
-	CandidateArtifacts []string       `json:"candidate_artifacts,omitempty"`
-	SelectedGroupID    string         `json:"selected_group_id,omitempty"`
-	SelectedArtifactID string         `json:"selected_artifact_id,omitempty"`
-	SelectedPURL       string         `json:"selected_purl,omitempty"`
-	AdvisoryCount      int            `json:"advisory_count,omitempty"`
-	VulnerabilityIDs   []string       `json:"vulnerability_ids,omitempty"`
-	Notes              []string       `json:"notes,omitempty"`
+	InventoryID           string         `json:"inventory_id,omitempty"`
+	Component             NormalizedComp `json:"component"`
+	Status                string         `json:"status"`
+	MatchConfidence       string         `json:"match_confidence,omitempty"`
+	ResolutionSource      string         `json:"resolution_source,omitempty"`
+	CandidateArtifacts    []string       `json:"candidate_artifacts,omitempty"`
+	SelectedGroupID       string         `json:"selected_group_id,omitempty"`
+	SelectedArtifactID    string         `json:"selected_artifact_id,omitempty"`
+	SelectedPURL          string         `json:"selected_purl,omitempty"`
+	DiscoverySource       string         `json:"discovery_source,omitempty"`
+	PathInArchive         string         `json:"path_in_archive,omitempty"`
+	IsDirectRuntimeTarget *bool          `json:"is_direct_runtime_target,omitempty"`
+	IsNested              *bool          `json:"is_nested,omitempty"`
+	NoiseFlags            []string       `json:"noise_flags,omitempty"`
+	SuppressionCandidate  bool           `json:"suppression_candidate"`
+	SuppressionReason     string         `json:"suppression_reason,omitempty"`
+	AdvisoryCount         int            `json:"advisory_count,omitempty"`
+	VulnerabilityIDs      []string       `json:"vulnerability_ids,omitempty"`
+	Notes                 []string       `json:"notes,omitempty"`
 }
 
 type NormalizedComp struct {
@@ -248,4 +267,14 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func firstNonNilBool(values ...*bool) *bool {
+	for _, value := range values {
+		if value != nil {
+			resolved := *value
+			return &resolved
+		}
+	}
+	return nil
 }

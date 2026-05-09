@@ -8,6 +8,7 @@ import (
 	"runtime-java-matcher/internal/api"
 	"runtime-java-matcher/internal/db"
 	"runtime-java-matcher/internal/identity"
+	"runtime-java-matcher/internal/noise"
 	"runtime-java-matcher/internal/version"
 )
 
@@ -18,9 +19,12 @@ type Service struct {
 
 type normalizedComponent struct {
 	api.NormalizedComp
-	InventoryID   string
-	PackageName   string
-	PathInArchive string
+	InventoryID           string
+	PackageName           string
+	PathInArchive         string
+	DiscoverySource       string
+	IsDirectRuntimeTarget *bool
+	IsNested              *bool
 }
 
 type candidateResult struct {
@@ -217,9 +221,12 @@ func enrichComponentFromRecord(component *normalizedComponent, record db.Package
 
 func normalizeComponent(input api.ComponentInput) normalizedComponent {
 	component := normalizedComponent{
-		InventoryID:   input.InventoryID,
-		PackageName:   strings.TrimSpace(input.PackageName),
-		PathInArchive: strings.TrimSpace(input.PathInArchive),
+		InventoryID:           input.InventoryID,
+		PackageName:           strings.TrimSpace(input.PackageName),
+		PathInArchive:         strings.TrimSpace(input.PathInArchive),
+		DiscoverySource:       strings.TrimSpace(input.DiscoverySource),
+		IsDirectRuntimeTarget: input.IsDirectRuntimeTarget,
+		IsNested:              input.IsNested,
 		NormalizedComp: api.NormalizedComp{
 			PackageType:    valueOrDefault(input.PackageType, "maven"),
 			PURL:           strings.TrimSpace(input.PURL),
@@ -351,19 +358,35 @@ func (e componentEvaluation) toDiagnostic() api.ComponentDiagnostic {
 	for _, vulnerability := range e.vulnerabilities {
 		vulnerabilityIDs = append(vulnerabilityIDs, vulnerability.ID)
 	}
+	assessment := noise.Assess(
+		e.status,
+		e.normalized.ArtifactID,
+		e.normalized.RuntimePath,
+		e.normalized.DiscoverySource,
+		e.normalized.EvidenceSource,
+		e.normalized.IsDirectRuntimeTarget,
+		e.normalized.IsNested,
+	)
 	return api.ComponentDiagnostic{
-		InventoryID:        e.normalized.InventoryID,
-		Component:          e.normalized.NormalizedComp,
-		Status:             e.status,
-		MatchConfidence:    e.confidence,
-		ResolutionSource:   e.resolutionSource,
-		CandidateArtifacts: candidateArtifacts,
-		SelectedGroupID:    e.normalized.GroupID,
-		SelectedArtifactID: e.normalized.ArtifactID,
-		SelectedPURL:       e.normalized.PURL,
-		AdvisoryCount:      len(e.records),
-		VulnerabilityIDs:   vulnerabilityIDs,
-		Notes:              append([]string(nil), e.notes...),
+		InventoryID:           e.normalized.InventoryID,
+		Component:             e.normalized.NormalizedComp,
+		Status:                e.status,
+		MatchConfidence:       e.confidence,
+		ResolutionSource:      e.resolutionSource,
+		CandidateArtifacts:    candidateArtifacts,
+		SelectedGroupID:       e.normalized.GroupID,
+		SelectedArtifactID:    e.normalized.ArtifactID,
+		SelectedPURL:          e.normalized.PURL,
+		DiscoverySource:       e.normalized.DiscoverySource,
+		PathInArchive:         e.normalized.PathInArchive,
+		IsDirectRuntimeTarget: e.normalized.IsDirectRuntimeTarget,
+		IsNested:              e.normalized.IsNested,
+		NoiseFlags:            append([]string(nil), assessment.Flags...),
+		SuppressionCandidate:  assessment.SuppressionCandidate,
+		SuppressionReason:     assessment.SuppressionReason,
+		AdvisoryCount:         len(e.records),
+		VulnerabilityIDs:      vulnerabilityIDs,
+		Notes:                 append([]string(nil), e.notes...),
 	}
 }
 
