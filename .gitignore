@@ -15,6 +15,7 @@ dist/
 /request.json
 /response.json
 *.log
+/.deploy-keys/
 
 # Editor and OS files
 .vscode/
