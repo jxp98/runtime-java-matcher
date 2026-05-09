@@ -7,6 +7,7 @@ import (
 
 	"runtime-java-matcher/internal/api"
 	"runtime-java-matcher/internal/db"
+	"runtime-java-matcher/internal/identity"
 	"runtime-java-matcher/internal/version"
 )
 
@@ -17,7 +18,9 @@ type Service struct {
 
 type normalizedComponent struct {
 	api.NormalizedComp
-	InventoryID string
+	InventoryID   string
+	PackageName   string
+	PathInArchive string
 }
 
 func New(index *db.Index, source string) *Service {
@@ -76,14 +79,25 @@ func (s *Service) findCandidates(component normalizedComponent) ([]db.PackageRec
 		}
 	}
 
+	artifactCandidates := identity.CandidateArtifacts(
+		component.ArtifactID,
+		component.PackageName,
+		component.PathInArchive,
+		component.RuntimePath,
+	)
+
 	if component.GroupID != "" {
-		if records := s.index.FindByGA(component.GroupID, component.ArtifactID); len(records) > 0 {
-			return records, "high"
+		for _, artifactID := range artifactCandidates {
+			if records := s.index.FindByGA(component.GroupID, artifactID); len(records) > 0 {
+				return records, "high"
+			}
 		}
 	}
 
-	if records := s.index.FindByArtifact(component.ArtifactID); len(records) > 0 {
-		return records, "medium"
+	for _, artifactID := range artifactCandidates {
+		if records := s.index.FindByArtifact(artifactID); len(records) > 0 {
+			return records, "medium"
+		}
 	}
 
 	return nil, ""
@@ -97,13 +111,15 @@ func enrichComponentFromRecord(component *normalizedComponent, record db.Package
 	if component == nil {
 		return
 	}
-	if component.GroupID == "" {
-		component.GroupID = strings.TrimSpace(record.GroupID)
+	if groupID := strings.TrimSpace(record.GroupID); groupID != "" {
+		component.GroupID = groupID
 	}
-	if component.ArtifactID == "" {
-		component.ArtifactID = strings.TrimSpace(record.ArtifactID)
+	if artifactID := strings.TrimSpace(record.ArtifactID); artifactID != "" {
+		component.ArtifactID = artifactID
 	}
-	if component.PURL == "" {
+	if component.GroupID != "" && component.ArtifactID != "" {
+		component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
+	} else if component.PURL == "" {
 		component.PURL = strings.TrimSpace(record.PURL)
 	}
 	if component.PackageType == "" || component.PackageType == "maven" {
@@ -113,7 +129,9 @@ func enrichComponentFromRecord(component *normalizedComponent, record db.Package
 
 func normalizeComponent(input api.ComponentInput) normalizedComponent {
 	component := normalizedComponent{
-		InventoryID: input.InventoryID,
+		InventoryID:   input.InventoryID,
+		PackageName:   strings.TrimSpace(input.PackageName),
+		PathInArchive: strings.TrimSpace(input.PathInArchive),
 		NormalizedComp: api.NormalizedComp{
 			PackageType:    valueOrDefault(input.PackageType, "maven"),
 			PURL:           strings.TrimSpace(input.PURL),
@@ -141,6 +159,14 @@ func normalizeComponent(input api.ComponentInput) normalizedComponent {
 				component.Version = versionValue
 			}
 		}
+	}
+
+	inferredArtifactID, inferredVersion := identity.InferArtifactAndVersion(component.PathInArchive, component.RuntimePath)
+	if component.ArtifactID == "" {
+		component.ArtifactID = inferredArtifactID
+	}
+	if component.Version == "" {
+		component.Version = inferredVersion
 	}
 
 	return component
@@ -179,6 +205,19 @@ func collectVulnerabilities(records []db.PackageRecord, installedVersion, matchC
 	}
 
 	return result
+}
+
+func buildMavenPURL(groupID string, artifactID string, version string) string {
+	groupID = strings.TrimSpace(groupID)
+	artifactID = strings.TrimSpace(artifactID)
+	version = strings.TrimSpace(version)
+	if groupID == "" || artifactID == "" {
+		return ""
+	}
+	if version == "" {
+		return "pkg:maven/" + groupID + "/" + artifactID
+	}
+	return "pkg:maven/" + groupID + "/" + artifactID + "@" + version
 }
 
 func parseMavenPURL(raw string) (groupID, artifactID, versionValue string, ok bool) {

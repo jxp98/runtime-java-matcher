@@ -15,10 +15,11 @@ import (
 	trivyjdb "github.com/aquasecurity/trivy-java-db/pkg/db"
 	javaTypes "github.com/aquasecurity/trivy-java-db/pkg/types"
 	mavenversion "github.com/masahiro331/go-mvn-version"
-	_ "modernc.org/sqlite"
 	bolt "go.etcd.io/bbolt"
+	_ "modernc.org/sqlite"
 
 	"runtime-java-matcher/internal/api"
+	"runtime-java-matcher/internal/identity"
 )
 
 type Config struct {
@@ -38,7 +39,9 @@ type Service struct {
 
 type normalizedComponent struct {
 	api.NormalizedComp
-	InventoryID string
+	InventoryID   string
+	PackageName   string
+	PathInArchive string
 }
 
 type trivyMetadata struct {
@@ -152,6 +155,18 @@ func (s *Service) resolveComponent(component normalizedComponent) (normalizedCom
 		}
 	}
 
+	if component.Version == "" {
+		_, inferredVersion := identity.InferArtifactAndVersion(component.PathInArchive, component.RuntimePath)
+		component.Version = valueOrDefault(component.Version, inferredVersion)
+	}
+
+	artifactCandidates := identity.CandidateArtifacts(
+		component.ArtifactID,
+		component.PackageName,
+		component.PathInArchive,
+		component.RuntimePath,
+	)
+
 	if (component.GroupID == "" || component.ArtifactID == "") && component.SHA1 != "" {
 		if groupID, artifactID, versionValue, ok := s.lookupBySHA1(component.SHA1); ok {
 			component.GroupID = valueOrDefault(component.GroupID, groupID)
@@ -165,14 +180,26 @@ func (s *Service) resolveComponent(component normalizedComponent) (normalizedCom
 		}
 	}
 
-	if component.GroupID == "" && component.ArtifactID != "" && component.Version != "" {
-		if groupID, ok := s.lookupGroupID(component.ArtifactID, component.Version); ok {
-			component.GroupID = groupID
-			if component.PURL == "" {
-				component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
-			}
+	if component.Version != "" && component.GroupID != "" {
+		if artifactID, ok := s.lookupCanonicalArtifact(component.GroupID, component.Version, artifactCandidates...); ok {
+			component.ArtifactID = artifactID
+			component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
 			component.PackageType = valueOrDefault(component.PackageType, "jar")
-			return component, "medium", true
+			return component, "high", true
+		}
+	}
+
+	if component.GroupID == "" && component.Version != "" {
+		for _, artifactID := range artifactCandidates {
+			if groupID, ok := s.lookupGroupID(artifactID, component.Version); ok {
+				component.GroupID = groupID
+				component.ArtifactID = artifactID
+				if component.PURL == "" {
+					component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
+				}
+				component.PackageType = valueOrDefault(component.PackageType, "jar")
+				return component, "medium", true
+			}
 		}
 	}
 
@@ -233,6 +260,36 @@ func (s *Service) lookupGroupID(artifactID string, version string) (string, bool
 	}
 
 	return resolvedGroupID, resolvedGroupID != ""
+}
+
+func (s *Service) lookupCanonicalArtifact(groupID string, version string, artifactCandidates ...string) (string, bool) {
+	if s.javaDB == nil || strings.TrimSpace(groupID) == "" || strings.TrimSpace(version) == "" {
+		return "", false
+	}
+
+	normalizedGroupID := strings.TrimSpace(groupID)
+	normalizedVersion := strings.TrimSpace(version)
+	for _, artifactCandidate := range artifactCandidates {
+		candidate := strings.TrimSpace(artifactCandidate)
+		if candidate == "" {
+			continue
+		}
+		indexes, err := s.javaDB.SelectIndexesByArtifactIDAndFileType(candidate, normalizedVersion, javaTypes.JarType)
+		if err != nil || len(indexes) == 0 {
+			continue
+		}
+		for _, index := range indexes {
+			if !strings.EqualFold(strings.TrimSpace(index.GroupID), normalizedGroupID) {
+				continue
+			}
+			canonicalArtifactID := strings.TrimSpace(index.ArtifactID)
+			if canonicalArtifactID != "" {
+				return canonicalArtifactID, true
+			}
+		}
+	}
+
+	return "", false
 }
 
 func (s *Service) lookupVulnerabilities(groupID string, artifactID string, installedVersion string, confidence string) []api.Vulnerability {
@@ -383,7 +440,9 @@ func normalizeDBDir(path string, fileName string) (string, error) {
 
 func normalizeComponent(input api.ComponentInput) normalizedComponent {
 	component := normalizedComponent{
-		InventoryID: input.InventoryID,
+		InventoryID:   input.InventoryID,
+		PackageName:   strings.TrimSpace(input.PackageName),
+		PathInArchive: strings.TrimSpace(input.PathInArchive),
 		NormalizedComp: api.NormalizedComp{
 			PackageType:    valueOrDefault(input.PackageType, "jar"),
 			PURL:           strings.TrimSpace(input.PURL),
@@ -397,6 +456,13 @@ func normalizeComponent(input api.ComponentInput) normalizedComponent {
 			SHA1:           strings.TrimSpace(input.SHA1),
 			SHA256:         strings.TrimSpace(input.SHA256),
 		},
+	}
+	inferredArtifactID, inferredVersion := identity.InferArtifactAndVersion(component.PathInArchive, component.RuntimePath)
+	if component.ArtifactID == "" {
+		component.ArtifactID = inferredArtifactID
+	}
+	if component.Version == "" {
+		component.Version = inferredVersion
 	}
 	return component
 }

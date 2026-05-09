@@ -43,6 +43,7 @@ type ComponentInput struct {
 	DocumentVersion uint64 `json:"_document_version,omitempty"`
 	InventoryIndex  string `json:"_inventory_index,omitempty"`
 	PackageType     string `json:"package_type,omitempty"`
+	PackageName     string `json:"package_name,omitempty"`
 	PURL            string `json:"purl,omitempty"`
 	GroupID         string `json:"group_id,omitempty"`
 	ArtifactID      string `json:"artifact_id,omitempty"`
@@ -50,6 +51,7 @@ type ComponentInput struct {
 	VersionAlt      string `json:"version_,omitempty"`
 	RuntimePath     string `json:"runtime_path,omitempty"`
 	ArchivePath     string `json:"archive_path,omitempty"`
+	PathInArchive   string `json:"path_in_archive,omitempty"`
 	EvidenceSource  string `json:"evidence_source,omitempty"`
 	Confidence      string `json:"confidence,omitempty"`
 	SHA1            string `json:"sha1,omitempty"`
@@ -63,6 +65,7 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 		DocumentVersion uint64 `json:"_document_version,omitempty"`
 		InventoryIndex  string `json:"_inventory_index,omitempty"`
 		PackageType     string `json:"package_type,omitempty"`
+		PackageName     string `json:"package_name,omitempty"`
 		PURL            string `json:"purl,omitempty"`
 		GroupID         string `json:"group_id,omitempty"`
 		ArtifactID      string `json:"artifact_id,omitempty"`
@@ -70,6 +73,7 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 		VersionAlt      string `json:"version_,omitempty"`
 		RuntimePath     string `json:"runtime_path,omitempty"`
 		ArchivePath     string `json:"archive_path,omitempty"`
+		PathInArchive   string `json:"path_in_archive,omitempty"`
 		EvidenceSource  string `json:"evidence_source,omitempty"`
 		Confidence      string `json:"confidence,omitempty"`
 		SHA1            string `json:"sha1,omitempty"`
@@ -98,6 +102,7 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 				EvidenceSource string `json:"evidence_source,omitempty"`
 				Confidence     string `json:"confidence,omitempty"`
 				ArchivePath    string `json:"archive_path,omitempty"`
+				PathInArchive  string `json:"path_in_archive,omitempty"`
 				DiscoveredAt   string `json:"discovered_at,omitempty"`
 			} `json:"runtime_java,omitempty"`
 		} `json:"wazuh,omitempty"`
@@ -113,6 +118,7 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 		DocumentVersion: value.DocumentVersion,
 		InventoryIndex:  strings.TrimSpace(value.InventoryIndex),
 		PackageType:     firstNonEmpty(value.PackageType, value.Package.Type),
+		PackageName:     firstNonEmpty(value.PackageName, value.Package.Name),
 		PURL:            firstNonEmpty(value.PURL, value.Wazuh.RuntimeJava.PURL),
 		GroupID:         firstNonEmpty(value.GroupID, value.Wazuh.RuntimeJava.GroupID),
 		ArtifactID:      firstNonEmpty(value.ArtifactID, value.Package.Name),
@@ -120,6 +126,7 @@ func (c *ComponentInput) UnmarshalJSON(data []byte) error {
 		VersionAlt:      strings.TrimSpace(value.VersionAlt),
 		RuntimePath:     firstNonEmpty(value.RuntimePath, value.File.Path),
 		ArchivePath:     firstNonEmpty(value.ArchivePath, value.Wazuh.RuntimeJava.ArchivePath),
+		PathInArchive:   firstNonEmpty(value.PathInArchive, value.Wazuh.RuntimeJava.PathInArchive),
 		EvidenceSource:  firstNonEmpty(value.EvidenceSource, value.Wazuh.RuntimeJava.EvidenceSource),
 		Confidence:      firstNonEmpty(value.Confidence, value.Wazuh.RuntimeJava.Confidence),
 		SHA1:            firstNonEmpty(value.SHA1, value.File.Hash.SHA1, value.Checksum.Hash.SHA1),

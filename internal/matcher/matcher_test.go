@@ -108,6 +108,7 @@ func TestServiceMatchWithFormalDBAliasArtifact(t *testing.T) {
 				InventoryID:    "runtime-java:alias-1",
 				GroupID:        "org.apache.tomcat",
 				ArtifactID:     "Apache Tomcat JDBC Connection Pool",
+				PackageName:    "Apache Tomcat JDBC Connection Pool",
 				Version:        "8.5.82",
 				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/tomcat-jdbc.jar",
 				EvidenceSource: "manifest",
@@ -118,6 +119,9 @@ func TestServiceMatchWithFormalDBAliasArtifact(t *testing.T) {
 
 	if len(response.Matches) != 1 {
 		t.Fatalf("expected 1 alias match, got %d", len(response.Matches))
+	}
+	if response.Matches[0].Component.ArtifactID != "tomcat-jdbc" {
+		t.Fatalf("expected canonical artifact id, got %s", response.Matches[0].Component.ArtifactID)
 	}
 	if len(response.Matches[0].Vulnerabilities) == 0 {
 		t.Fatal("expected alias vulnerability match, got none")
@@ -163,5 +167,47 @@ func TestServiceMatchBySHA1(t *testing.T) {
 	}
 	if len(response.Matches[0].Vulnerabilities) == 0 {
 		t.Fatal("expected vulnerabilities, got none")
+	}
+}
+
+func TestServiceMatchWithPathInArchiveFallback(t *testing.T) {
+	index, err := db.Load("../../testdata/formal-db")
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+
+	service := New(index, "test-matcher")
+	response := service.Match(api.MatchRequest{
+		RequestID:     "session-formal-path-1",
+		SchemaVersion: "1.0",
+		ScanMode:      "full",
+		Agent:         api.Agent{ID: "001"},
+		Components: []api.ComponentInput{
+			{
+				InventoryID:    "runtime-java:path-1",
+				Version:        "8.5.82",
+				RuntimePath:    "/srv/app/demo-app.jar",
+				ArchivePath:    "/srv/app/demo-app.jar",
+				PathInArchive:  "BOOT-INF/lib/tomcat-jdbc-8.5.82.jar",
+				EvidenceSource: "filename",
+				Confidence:     "low",
+			},
+		},
+	})
+
+	if len(response.Matches) != 1 {
+		t.Fatalf("expected 1 path fallback match, got %d", len(response.Matches))
+	}
+	if response.Matches[0].Component.ArtifactID != "tomcat-jdbc" {
+		t.Fatalf("unexpected artifact id: %s", response.Matches[0].Component.ArtifactID)
+	}
+	if response.Matches[0].Component.GroupID != "org.apache.tomcat" {
+		t.Fatalf("unexpected group id: %s", response.Matches[0].Component.GroupID)
+	}
+	if len(response.Matches[0].Vulnerabilities) == 0 {
+		t.Fatal("expected vulnerabilities, got none")
+	}
+	if response.Matches[0].Vulnerabilities[0].ID != "CVE-2024-56337" {
+		t.Fatalf("unexpected vulnerability id: %s", response.Matches[0].Vulnerabilities[0].ID)
 	}
 }

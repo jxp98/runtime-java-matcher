@@ -33,6 +33,7 @@ func TestComponentInputUnmarshalRawInventoryDocument(t *testing.T) {
 	      "evidence_source": "pom.properties",
 	      "confidence": "high",
 	      "archive_path": "/srv/app/demo-app.jar",
+	      "path_in_archive": "BOOT-INF/lib/log4j-core-2.14.1.jar",
 	      "discovered_at": "2026-05-08T00:00:00Z"
 	    }
 	  }
@@ -52,6 +53,9 @@ func TestComponentInputUnmarshalRawInventoryDocument(t *testing.T) {
 	if component.PackageType != "jar" {
 		t.Fatalf("unexpected package type: %s", component.PackageType)
 	}
+	if component.PackageName != "log4j-core" {
+		t.Fatalf("unexpected package name: %s", component.PackageName)
+	}
 	if component.GroupID != "org.apache.logging.log4j" {
 		t.Fatalf("unexpected group id: %s", component.GroupID)
 	}
@@ -66,6 +70,9 @@ func TestComponentInputUnmarshalRawInventoryDocument(t *testing.T) {
 	}
 	if component.ArchivePath != "/srv/app/demo-app.jar" {
 		t.Fatalf("unexpected archive path: %s", component.ArchivePath)
+	}
+	if component.PathInArchive != "BOOT-INF/lib/log4j-core-2.14.1.jar" {
+		t.Fatalf("unexpected path in archive: %s", component.PathInArchive)
 	}
 	if component.SHA1 != "c5a52d75b03c4d197b35446d5cd0e7f85a8e986b" {
 		t.Fatalf("unexpected sha1: %s", component.SHA1)
