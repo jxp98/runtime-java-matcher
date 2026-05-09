@@ -12,6 +12,10 @@ type Matcher interface {
 	Match(request api.MatchRequest) api.MatchResponse
 }
 
+type Diagnoser interface {
+	Diagnose(request api.MatchRequest) api.MatchDiagnosticsResponse
+}
+
 func NewMux(service Matcher, health api.HealthResponse, logger *log.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -27,12 +31,8 @@ func NewMux(service Matcher, health api.HealthResponse, logger *log.Logger) http
 			return
 		}
 
-		defer r.Body.Close()
-		var request api.MatchRequest
-		decoder := json.NewDecoder(r.Body)
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&request); err != nil {
-			writeError(w, http.StatusBadRequest, "请求体不是合法 JSON: "+err.Error())
+		request, ok := decodeMatchRequest(w, r)
+		if !ok {
 			return
 		}
 
@@ -42,7 +42,50 @@ func NewMux(service Matcher, health api.HealthResponse, logger *log.Logger) http
 		}
 		writeJSON(w, http.StatusOK, response)
 	})
+	mux.HandleFunc("/runtime-java/diagnose", func(w http.ResponseWriter, r *http.Request) {
+		diagnoser, ok := service.(Diagnoser)
+		if !ok {
+			writeError(w, http.StatusNotImplemented, "当前后端不支持诊断接口")
+			return
+		}
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "仅支持 POST")
+			return
+		}
+
+		request, ok := decodeMatchRequest(w, r)
+		if !ok {
+			return
+		}
+
+		response := diagnoser.Diagnose(request)
+		if logger != nil {
+			logger.Printf(
+				"diagnose request_id=%s agent=%s components=%d matched=%d unresolved=%d no_advisory=%d version_not_affected=%d",
+				request.RequestID,
+				request.Agent.ID,
+				response.Summary.TotalComponents,
+				response.Summary.MatchedComponents,
+				response.Summary.IdentityUnresolved,
+				response.Summary.NoAdvisory,
+				response.Summary.VersionNotAffected,
+			)
+		}
+		writeJSON(w, http.StatusOK, response)
+	})
 	return mux
+}
+
+func decodeMatchRequest(w http.ResponseWriter, r *http.Request) (api.MatchRequest, bool) {
+	defer r.Body.Close()
+	var request api.MatchRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "请求体不是合法 JSON: "+err.Error())
+		return api.MatchRequest{}, false
+	}
+	return request, true
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

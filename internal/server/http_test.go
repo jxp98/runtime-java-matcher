@@ -147,3 +147,67 @@ func TestMatchEndpointWithRawInventoryComponent(t *testing.T) {
 		t.Fatal("expected vulnerabilities for raw inventory input")
 	}
 }
+
+func TestDiagnoseEndpoint(t *testing.T) {
+	index, err := db.Load("../../testdata/formal-db")
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+	mux := NewMux(matcher.New(index, "test-matcher"), api.HealthResponse{
+		Status:      "ok",
+		Backend:     "bundle",
+		Database:    "../../testdata/formal-db",
+		PackageSize: index.Size(),
+	}, nil)
+
+	body := []byte(`{
+	  "request_id": "diagnose-http-1",
+	  "schema_version": "1.0",
+	  "scan_mode": "full",
+	  "agent": {"id": "001"},
+	  "components": [
+	    {
+	      "_inventory_id": "runtime-java:matched-1",
+	      "group_id": "org.apache.tomcat",
+	      "artifact_id": "Apache Tomcat JDBC Connection Pool",
+	      "package_name": "Apache Tomcat JDBC Connection Pool",
+	      "version": "8.5.82",
+	      "runtime_path": "/opt/apache-tomcat-8.5.82/lib/tomcat-jdbc.jar",
+	      "evidence_source": "manifest"
+	    },
+	    {
+	      "_inventory_id": "runtime-java:no-adv-1",
+	      "group_id": "org.apache.tomcat",
+	      "artifact_id": "tomcat-juli",
+	      "version": "8.5.82",
+	      "runtime_path": "/opt/apache-tomcat-8.5.82/lib/tomcat-juli.jar",
+	      "evidence_source": "filename"
+	    }
+	  ]
+	}`)
+	request := httptest.NewRequest(http.MethodPost, "/runtime-java/diagnose", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", response.Code)
+	}
+
+	var diagnoseResponse api.MatchDiagnosticsResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &diagnoseResponse); err != nil {
+		t.Fatalf("json.Unmarshal failed: %v", err)
+	}
+	if diagnoseResponse.Summary.TotalComponents != 2 {
+		t.Fatalf("unexpected total components: %d", diagnoseResponse.Summary.TotalComponents)
+	}
+	if diagnoseResponse.Summary.MatchedComponents != 1 {
+		t.Fatalf("unexpected matched components: %d", diagnoseResponse.Summary.MatchedComponents)
+	}
+	if diagnoseResponse.Summary.NoAdvisory != 1 {
+		t.Fatalf("unexpected no advisory count: %d", diagnoseResponse.Summary.NoAdvisory)
+	}
+	if diagnoseResponse.Components[0].SelectedArtifactID != "tomcat-jdbc" {
+		t.Fatalf("unexpected canonical artifact id: %s", diagnoseResponse.Components[0].SelectedArtifactID)
+	}
+}

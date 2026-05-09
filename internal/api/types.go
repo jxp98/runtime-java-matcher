@@ -6,6 +6,15 @@ import (
 	"time"
 )
 
+const (
+	MatchStatusMatched            = "matched"
+	MatchStatusMissingVersion     = "missing_version"
+	MatchStatusMissingIdentity    = "missing_identity"
+	MatchStatusIdentityUnresolved = "identity_unresolved"
+	MatchStatusNoAdvisory         = "no_advisory"
+	MatchStatusVersionNotAffected = "version_not_affected"
+)
+
 type MatchRequest struct {
 	RequestID     string           `json:"request_id"`
 	SchemaVersion string           `json:"schema_version"`
@@ -152,6 +161,41 @@ type MatchEntry struct {
 	Component       NormalizedComp  `json:"component"`
 	MatchConfidence string          `json:"match_confidence"`
 	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
+}
+
+type MatchDiagnosticsResponse struct {
+	RequestID     string                  `json:"request_id"`
+	SchemaVersion string                  `json:"schema_version"`
+	GeneratedAt   string                  `json:"generated_at"`
+	Source        string                  `json:"source"`
+	ScanMode      string                  `json:"scan_mode,omitempty"`
+	Summary       MatchDiagnosticsSummary `json:"summary"`
+	Components    []ComponentDiagnostic   `json:"components"`
+}
+
+type MatchDiagnosticsSummary struct {
+	TotalComponents    int `json:"total_components"`
+	MatchedComponents  int `json:"matched_components"`
+	MissingVersion     int `json:"missing_version"`
+	MissingIdentity    int `json:"missing_identity"`
+	IdentityUnresolved int `json:"identity_unresolved"`
+	NoAdvisory         int `json:"no_advisory"`
+	VersionNotAffected int `json:"version_not_affected"`
+}
+
+type ComponentDiagnostic struct {
+	InventoryID        string         `json:"inventory_id,omitempty"`
+	Component          NormalizedComp `json:"component"`
+	Status             string         `json:"status"`
+	MatchConfidence    string         `json:"match_confidence,omitempty"`
+	ResolutionSource   string         `json:"resolution_source,omitempty"`
+	CandidateArtifacts []string       `json:"candidate_artifacts,omitempty"`
+	SelectedGroupID    string         `json:"selected_group_id,omitempty"`
+	SelectedArtifactID string         `json:"selected_artifact_id,omitempty"`
+	SelectedPURL       string         `json:"selected_purl,omitempty"`
+	AdvisoryCount      int            `json:"advisory_count,omitempty"`
+	VulnerabilityIDs   []string       `json:"vulnerability_ids,omitempty"`
+	Notes              []string       `json:"notes,omitempty"`
 }
 
 type NormalizedComp struct {

@@ -19,18 +19,16 @@ func TestServiceMatch(t *testing.T) {
 		SchemaVersion: "1.0",
 		ScanMode:      "full",
 		Agent:         api.Agent{ID: "001"},
-		Components: []api.ComponentInput{
-			{
-				InventoryID:    "runtime-java:1",
-				GroupID:        "org.apache.logging.log4j",
-				ArtifactID:     "log4j-core",
-				Version:        "2.14.1",
-				RuntimePath:    "/srv/app/lib/log4j-core-2.14.1.jar",
-				PackageType:    "maven",
-				Confidence:     "high",
-				EvidenceSource: "pom.properties",
-			},
-		},
+		Components: []api.ComponentInput{{
+			InventoryID:    "runtime-java:1",
+			GroupID:        "org.apache.logging.log4j",
+			ArtifactID:     "log4j-core",
+			Version:        "2.14.1",
+			RuntimePath:    "/srv/app/lib/log4j-core-2.14.1.jar",
+			PackageType:    "maven",
+			Confidence:     "high",
+			EvidenceSource: "pom.properties",
+		}},
 	})
 
 	if len(response.Matches) != 1 {
@@ -66,18 +64,16 @@ func TestServiceMatchAcceptsVersionAltField(t *testing.T) {
 		SchemaVersion: "1.0",
 		ScanMode:      "full",
 		Agent:         api.Agent{ID: "001"},
-		Components: []api.ComponentInput{
-			{
-				InventoryID:    "runtime-java:2",
-				GroupID:        "org.springframework",
-				ArtifactID:     "spring-core",
-				VersionAlt:     "5.3.17",
-				RuntimePath:    "/srv/app/demo-app.jar",
-				ArchivePath:    "/srv/app/demo-app.jar",
-				EvidenceSource: "pom.properties",
-				Confidence:     "high",
-			},
-		},
+		Components: []api.ComponentInput{{
+			InventoryID:    "runtime-java:2",
+			GroupID:        "org.springframework",
+			ArtifactID:     "spring-core",
+			VersionAlt:     "5.3.17",
+			RuntimePath:    "/srv/app/demo-app.jar",
+			ArchivePath:    "/srv/app/demo-app.jar",
+			EvidenceSource: "pom.properties",
+			Confidence:     "high",
+		}},
 	})
 
 	if len(response.Matches) != 1 {
@@ -103,18 +99,16 @@ func TestServiceMatchWithFormalDBAliasArtifact(t *testing.T) {
 		SchemaVersion: "1.0",
 		ScanMode:      "full",
 		Agent:         api.Agent{ID: "001"},
-		Components: []api.ComponentInput{
-			{
-				InventoryID:    "runtime-java:alias-1",
-				GroupID:        "org.apache.tomcat",
-				ArtifactID:     "Apache Tomcat JDBC Connection Pool",
-				PackageName:    "Apache Tomcat JDBC Connection Pool",
-				Version:        "8.5.82",
-				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/tomcat-jdbc.jar",
-				EvidenceSource: "manifest",
-				Confidence:     "medium",
-			},
-		},
+		Components: []api.ComponentInput{{
+			InventoryID:    "runtime-java:alias-1",
+			GroupID:        "org.apache.tomcat",
+			ArtifactID:     "Apache Tomcat JDBC Connection Pool",
+			PackageName:    "Apache Tomcat JDBC Connection Pool",
+			Version:        "8.5.82",
+			RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/tomcat-jdbc.jar",
+			EvidenceSource: "manifest",
+			Confidence:     "medium",
+		}},
 	})
 
 	if len(response.Matches) != 1 {
@@ -143,17 +137,15 @@ func TestServiceMatchBySHA1(t *testing.T) {
 		SchemaVersion: "1.0",
 		ScanMode:      "full",
 		Agent:         api.Agent{ID: "001"},
-		Components: []api.ComponentInput{
-			{
-				InventoryID:    "runtime-java:3",
-				VersionAlt:     "2.14.1",
-				RuntimePath:    "/srv/app/demo-app.jar",
-				ArchivePath:    "/srv/app/demo-app.jar",
-				SHA1:           "c5a52d75b03c4d197b35446d5cd0e7f85a8e986b",
-				EvidenceSource: "pom.properties",
-				Confidence:     "high",
-			},
-		},
+		Components: []api.ComponentInput{{
+			InventoryID:    "runtime-java:3",
+			VersionAlt:     "2.14.1",
+			RuntimePath:    "/srv/app/demo-app.jar",
+			ArchivePath:    "/srv/app/demo-app.jar",
+			SHA1:           "c5a52d75b03c4d197b35446d5cd0e7f85a8e986b",
+			EvidenceSource: "pom.properties",
+			Confidence:     "high",
+		}},
 	})
 
 	if len(response.Matches) != 1 {
@@ -182,17 +174,15 @@ func TestServiceMatchWithPathInArchiveFallback(t *testing.T) {
 		SchemaVersion: "1.0",
 		ScanMode:      "full",
 		Agent:         api.Agent{ID: "001"},
-		Components: []api.ComponentInput{
-			{
-				InventoryID:    "runtime-java:path-1",
-				Version:        "8.5.82",
-				RuntimePath:    "/srv/app/demo-app.jar",
-				ArchivePath:    "/srv/app/demo-app.jar",
-				PathInArchive:  "BOOT-INF/lib/tomcat-jdbc-8.5.82.jar",
-				EvidenceSource: "filename",
-				Confidence:     "low",
-			},
-		},
+		Components: []api.ComponentInput{{
+			InventoryID:    "runtime-java:path-1",
+			Version:        "8.5.82",
+			RuntimePath:    "/srv/app/demo-app.jar",
+			ArchivePath:    "/srv/app/demo-app.jar",
+			PathInArchive:  "BOOT-INF/lib/tomcat-jdbc-8.5.82.jar",
+			EvidenceSource: "filename",
+			Confidence:     "low",
+		}},
 	})
 
 	if len(response.Matches) != 1 {
@@ -209,5 +199,70 @@ func TestServiceMatchWithPathInArchiveFallback(t *testing.T) {
 	}
 	if response.Matches[0].Vulnerabilities[0].ID != "CVE-2024-56337" {
 		t.Fatalf("unexpected vulnerability id: %s", response.Matches[0].Vulnerabilities[0].ID)
+	}
+}
+
+func TestServiceDiagnoseClassifiesComponents(t *testing.T) {
+	index, err := db.Load("../../testdata/formal-db")
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+
+	service := New(index, "test-matcher")
+	response := service.Diagnose(api.MatchRequest{
+		RequestID:     "diagnose-1",
+		SchemaVersion: "1.0",
+		ScanMode:      "full",
+		Agent:         api.Agent{ID: "001"},
+		Components: []api.ComponentInput{
+			{
+				InventoryID:    "runtime-java:matched-1",
+				GroupID:        "org.apache.tomcat",
+				ArtifactID:     "Apache Tomcat JDBC Connection Pool",
+				PackageName:    "Apache Tomcat JDBC Connection Pool",
+				Version:        "8.5.82",
+				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/tomcat-jdbc.jar",
+				EvidenceSource: "manifest",
+			},
+			{
+				InventoryID:    "runtime-java:no-adv-1",
+				GroupID:        "org.apache.tomcat",
+				ArtifactID:     "tomcat-juli",
+				Version:        "8.5.82",
+				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/tomcat-juli.jar",
+				EvidenceSource: "filename",
+			},
+			{
+				InventoryID:    "runtime-java:no-ver-1",
+				ArtifactID:     "bootstrap",
+				RuntimePath:    "/opt/apache-tomcat-8.5.82/bin/bootstrap.jar",
+				EvidenceSource: "filename",
+			},
+		},
+	})
+
+	if response.Summary.TotalComponents != 3 {
+		t.Fatalf("unexpected total components: %d", response.Summary.TotalComponents)
+	}
+	if response.Summary.MatchedComponents != 1 {
+		t.Fatalf("unexpected matched components: %d", response.Summary.MatchedComponents)
+	}
+	if response.Summary.NoAdvisory != 1 {
+		t.Fatalf("unexpected no advisory count: %d", response.Summary.NoAdvisory)
+	}
+	if response.Summary.MissingVersion != 1 {
+		t.Fatalf("unexpected missing version count: %d", response.Summary.MissingVersion)
+	}
+	if response.Components[0].Status != api.MatchStatusMatched {
+		t.Fatalf("unexpected first status: %s", response.Components[0].Status)
+	}
+	if response.Components[0].SelectedArtifactID != "tomcat-jdbc" {
+		t.Fatalf("unexpected canonical artifact id: %s", response.Components[0].SelectedArtifactID)
+	}
+	if response.Components[1].Status != api.MatchStatusNoAdvisory {
+		t.Fatalf("unexpected second status: %s", response.Components[1].Status)
+	}
+	if response.Components[2].Status != api.MatchStatusMissingVersion {
+		t.Fatalf("unexpected third status: %s", response.Components[2].Status)
 	}
 }

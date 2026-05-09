@@ -23,6 +23,24 @@ type normalizedComponent struct {
 	PathInArchive string
 }
 
+type candidateResult struct {
+	records            []db.PackageRecord
+	confidence         string
+	resolutionSource   string
+	candidateArtifacts []identity.ArtifactCandidate
+}
+
+type componentEvaluation struct {
+	normalized         normalizedComponent
+	status             string
+	confidence         string
+	resolutionSource   string
+	candidateArtifacts []identity.ArtifactCandidate
+	records            []db.PackageRecord
+	vulnerabilities    []api.Vulnerability
+	notes              []string
+}
+
 func New(index *db.Index, source string) *Service {
 	return &Service{index: index, source: source}
 }
@@ -38,69 +56,139 @@ func (s *Service) Match(request api.MatchRequest) api.MatchResponse {
 	}
 
 	for _, componentInput := range request.Components {
-		normalized := normalizeComponent(componentInput)
-		if normalized.Version == "" || !hasIdentity(normalized) {
+		evaluation := s.evaluateComponent(componentInput)
+		if evaluation.status != api.MatchStatusMatched {
 			continue
 		}
-
-		records, confidence := s.findCandidates(normalized)
-		if len(records) == 0 {
-			continue
-		}
-
-		enrichComponentFromRecord(&normalized, records[0])
-		vulnerabilities := collectVulnerabilities(records, normalized.Version, confidence)
-		if len(vulnerabilities) == 0 {
-			continue
-		}
-
 		response.Matches = append(response.Matches, api.MatchEntry{
-			InventoryID:     normalized.InventoryID,
-			ComponentRef:    normalized.InventoryID,
-			Component:       normalized.NormalizedComp,
-			MatchConfidence: confidence,
-			Vulnerabilities: vulnerabilities,
+			InventoryID:     evaluation.normalized.InventoryID,
+			ComponentRef:    evaluation.normalized.InventoryID,
+			Component:       evaluation.normalized.NormalizedComp,
+			MatchConfidence: evaluation.confidence,
+			Vulnerabilities: evaluation.vulnerabilities,
 		})
 	}
 
 	return response
 }
 
-func (s *Service) findCandidates(component normalizedComponent) ([]db.PackageRecord, string) {
+func (s *Service) Diagnose(request api.MatchRequest) api.MatchDiagnosticsResponse {
+	response := api.MatchDiagnosticsResponse{
+		RequestID:     request.RequestID,
+		SchemaVersion: valueOrDefault(request.SchemaVersion, "1.0"),
+		GeneratedAt:   api.NowISO8601(),
+		Source:        valueOrDefault(s.source, "runtime-java-matcher"),
+		ScanMode:      request.ScanMode,
+		Components:    make([]api.ComponentDiagnostic, 0, len(request.Components)),
+	}
+
+	for _, componentInput := range request.Components {
+		evaluation := s.evaluateComponent(componentInput)
+		response.Components = append(response.Components, evaluation.toDiagnostic())
+		response.Summary.TotalComponents++
+		switch evaluation.status {
+		case api.MatchStatusMatched:
+			response.Summary.MatchedComponents++
+		case api.MatchStatusMissingVersion:
+			response.Summary.MissingVersion++
+		case api.MatchStatusMissingIdentity:
+			response.Summary.MissingIdentity++
+		case api.MatchStatusIdentityUnresolved:
+			response.Summary.IdentityUnresolved++
+		case api.MatchStatusNoAdvisory:
+			response.Summary.NoAdvisory++
+		case api.MatchStatusVersionNotAffected:
+			response.Summary.VersionNotAffected++
+		}
+	}
+
+	return response
+}
+
+func (s *Service) evaluateComponent(input api.ComponentInput) componentEvaluation {
+	normalized := normalizeComponent(input)
+	candidates := buildArtifactCandidates(normalized)
+	evaluation := componentEvaluation{
+		normalized:         normalized,
+		candidateArtifacts: candidates,
+		notes:              make([]string, 0, 2),
+	}
+
+	if normalized.Version == "" {
+		evaluation.status = api.MatchStatusMissingVersion
+		evaluation.notes = append(evaluation.notes, "缺少可比较的组件版本")
+		return evaluation
+	}
+	if !hasIdentity(normalized) {
+		evaluation.status = api.MatchStatusMissingIdentity
+		evaluation.notes = append(evaluation.notes, "缺少 purl / sha1 / artifact_id 等身份字段")
+		return evaluation
+	}
+
+	candidateResult := s.findCandidates(normalized, candidates)
+	evaluation.confidence = candidateResult.confidence
+	evaluation.resolutionSource = candidateResult.resolutionSource
+	evaluation.records = candidateResult.records
+	if len(candidateResult.records) == 0 {
+		if normalized.GroupID != "" && normalized.ArtifactID != "" {
+			evaluation.status = api.MatchStatusNoAdvisory
+			evaluation.notes = append(evaluation.notes, "组件身份已知，但漏洞库无对应记录")
+		} else {
+			evaluation.status = api.MatchStatusIdentityUnresolved
+			evaluation.notes = append(evaluation.notes, "候选 artifact 无法解析为可命中的组件身份")
+		}
+		return evaluation
+	}
+
+	enrichComponentFromRecord(&normalized, candidateResult.records[0])
+	evaluation.normalized = normalized
+	evaluation.vulnerabilities = collectVulnerabilities(candidateResult.records, normalized.Version, candidateResult.confidence)
+	if len(evaluation.vulnerabilities) == 0 {
+		evaluation.status = api.MatchStatusVersionNotAffected
+		evaluation.notes = append(evaluation.notes, "组件存在漏洞记录，但当前版本不在受影响区间")
+		return evaluation
+	}
+
+	evaluation.status = api.MatchStatusMatched
+	return evaluation
+}
+
+func (s *Service) findCandidates(component normalizedComponent, candidates []identity.ArtifactCandidate) candidateResult {
 	if component.PURL != "" {
 		if records := s.index.FindByPURL(component.PURL); len(records) > 0 {
-			return records, "high"
+			return candidateResult{records: records, confidence: "high", resolutionSource: "purl", candidateArtifacts: candidates}
 		}
 	}
 
 	if component.SHA1 != "" {
 		if records := s.index.FindBySHA1(component.SHA1); len(records) > 0 {
-			return records, "high"
+			return candidateResult{records: records, confidence: "high", resolutionSource: "sha1", candidateArtifacts: candidates}
 		}
 	}
 
-	artifactCandidates := identity.CandidateArtifacts(
-		component.ArtifactID,
-		component.PackageName,
-		component.PathInArchive,
-		component.RuntimePath,
-	)
-
 	if component.GroupID != "" {
-		for _, artifactID := range artifactCandidates {
-			if records := s.index.FindByGA(component.GroupID, artifactID); len(records) > 0 {
-				return records, "high"
+		for _, candidate := range candidates {
+			if records := s.index.FindByGA(component.GroupID, candidate.Value); len(records) > 0 {
+				resolutionSource := "group_artifact"
+				if candidate.Source != "artifact_id" {
+					resolutionSource = "group_artifact_candidate"
+				}
+				return candidateResult{records: records, confidence: "high", resolutionSource: resolutionSource, candidateArtifacts: candidates}
 			}
 		}
 	}
 
-	for _, artifactID := range artifactCandidates {
-		if records := s.index.FindByArtifact(artifactID); len(records) > 0 {
-			return records, "medium"
+	for _, candidate := range candidates {
+		if records := s.index.FindByArtifact(candidate.Value); len(records) > 0 {
+			resolutionSource := "artifact"
+			if candidate.Source != "artifact_id" {
+				resolutionSource = "artifact_candidate"
+			}
+			return candidateResult{records: records, confidence: "medium", resolutionSource: resolutionSource, candidateArtifacts: candidates}
 		}
 	}
 
-	return nil, ""
+	return candidateResult{candidateArtifacts: candidates}
 }
 
 func hasIdentity(component normalizedComponent) bool {
@@ -252,6 +340,41 @@ func parseMavenPURL(raw string) (groupID, artifactID, versionValue string, ok bo
 		return "", "", "", false
 	}
 	return group, artifact, versionDecoded, true
+}
+
+func (e componentEvaluation) toDiagnostic() api.ComponentDiagnostic {
+	candidateArtifacts := make([]string, 0, len(e.candidateArtifacts))
+	for _, candidate := range e.candidateArtifacts {
+		candidateArtifacts = append(candidateArtifacts, candidate.Value)
+	}
+	vulnerabilityIDs := make([]string, 0, len(e.vulnerabilities))
+	for _, vulnerability := range e.vulnerabilities {
+		vulnerabilityIDs = append(vulnerabilityIDs, vulnerability.ID)
+	}
+	return api.ComponentDiagnostic{
+		InventoryID:        e.normalized.InventoryID,
+		Component:          e.normalized.NormalizedComp,
+		Status:             e.status,
+		MatchConfidence:    e.confidence,
+		ResolutionSource:   e.resolutionSource,
+		CandidateArtifacts: candidateArtifacts,
+		SelectedGroupID:    e.normalized.GroupID,
+		SelectedArtifactID: e.normalized.ArtifactID,
+		SelectedPURL:       e.normalized.PURL,
+		AdvisoryCount:      len(e.records),
+		VulnerabilityIDs:   vulnerabilityIDs,
+		Notes:              append([]string(nil), e.notes...),
+	}
+}
+
+func buildArtifactCandidates(component normalizedComponent) []identity.ArtifactCandidate {
+	return identity.BuildArtifactCandidates(
+		component.ArtifactID,
+		component.PackageName,
+		component.PathInArchive,
+		component.RuntimePath,
+		component.EvidenceSource,
+	)
 }
 
 func valueOrDefault(value, defaultValue string) string {
