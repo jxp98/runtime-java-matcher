@@ -2,6 +2,7 @@ package trivyraw
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	trivyjdb "github.com/aquasecurity/trivy-java-db/pkg/db"
 	javaTypes "github.com/aquasecurity/trivy-java-db/pkg/types"
 	mavenversion "github.com/masahiro331/go-mvn-version"
+	_ "modernc.org/sqlite"
 	bolt "go.etcd.io/bbolt"
 
 	"runtime-java-matcher/internal/api"
@@ -70,7 +72,7 @@ func New(cfg Config, source string) (*Service, error) {
 		vulnDir: vulnDir,
 		javaDir: javaDir,
 		vulnDB:  trivyvdb.Config{},
-		javaDB:  javaDB,
+		javaDB:  &javaDB,
 		source:  source,
 		health:  buildHealth(vulnDir, javaDir),
 	}
@@ -78,17 +80,17 @@ func New(cfg Config, source string) (*Service, error) {
 }
 
 func (s *Service) Close() error {
-	var errors []string
+	var closeErrors []string
 	if s.javaDB != nil {
 		if err := s.javaDB.Close(); err != nil {
-			errors = append(errors, err.Error())
+			closeErrors = append(closeErrors, err.Error())
 		}
 	}
 	if err := trivyvdb.Close(); err != nil {
-		errors = append(errors, err.Error())
+		closeErrors = append(closeErrors, err.Error())
 	}
-	if len(errors) > 0 {
-		return fmt.Errorf(strings.Join(errors, "; "))
+	if len(closeErrors) > 0 {
+		return errors.New(strings.Join(closeErrors, "; "))
 	}
 	return nil
 }
