@@ -183,6 +183,58 @@ go run ./cmd/bundlegen \
 
 这条命令的价值不是直接替代正式 `trivy-db`，而是先把仓库内现有可复用的 Trivy Java 样本尽量并进来，让远端验证时不再只拿到 3 条演示库。
 
+## Trivy 对照回归
+
+如果你想回答“当前 matcher 的漏洞命中语义和 Trivy 官方结果差多少”，现在可以直接用 `trivycompare` 做一轮**对照回归**。
+
+它的思路是：
+
+1. 读取一份 **Trivy 官方 JSON 报告**
+2. 从报告中抽取组件身份与版本，自动合成一份 matcher request
+3. 调当前 matcher
+4. 对比：
+   - `Trivy 有、matcher 没有`
+   - `matcher 有、Trivy 没有`
+
+这条路径优先验证的是**漏洞匹配与版本判断语义**，而不是 agent 采集差异。
+
+### 本地 bundle 对照
+
+```bash
+go run ./cmd/trivycompare \
+  -trivy-report testdata/bundlegen/trivy-report.json \
+  -db testdata/formal-db \
+  -request-out dist/trivy-compare.request.json \
+  -response-out dist/trivy-compare.response.json
+```
+
+### 对在线 matcher 服务做对照
+
+```bash
+go run ./cmd/trivycompare \
+  -trivy-report /path/to/trivy-report.json \
+  -matcher-url http://127.0.0.1:8080/runtime-java/match \
+  -request-out dist/trivy-compare.request.json \
+  -response-out dist/trivy-compare.response.json
+```
+
+输出会给出：
+
+- `baseline_components`
+- `baseline_vulnerabilities`
+- `matcher_components`
+- `matcher_vulnerabilities`
+- `missing_in_matcher`
+- `extra_in_matcher`
+
+如果要做更完整的回归，建议保存三份产物：
+
+- Trivy 原始报告
+- `trivycompare` 生成的 request
+- 当前 matcher 返回的 response
+
+这样后续每次优化都能做稳定 diff。
+
 ## 联调示例
 
 ```bash
