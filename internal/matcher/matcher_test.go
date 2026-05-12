@@ -1,6 +1,8 @@
 package matcher
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"runtime-java-matcher/internal/api"
@@ -199,6 +201,92 @@ func TestServiceMatchWithPathInArchiveFallback(t *testing.T) {
 	}
 	if response.Matches[0].Vulnerabilities[0].ID != "CVE-2024-56337" {
 		t.Fatalf("unexpected vulnerability id: %s", response.Matches[0].Vulnerabilities[0].ID)
+	}
+}
+
+func TestServiceMatchWithRuntimeFamilyCandidate(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "family-db.json")
+	content := []byte(`[
+	  {
+	    "package_type": "maven",
+	    "group_id": "org.apache.tomcat",
+	    "artifact_id": "tomcat-catalina",
+	    "source": "test-family-db",
+	    "vulnerabilities": [
+	      {
+	        "id": "CVE-TEST-TOMCAT-CATALINA",
+	        "severity": "high",
+	        "affected_range": ">=8.0,<9.0",
+	        "operation": "upsert"
+	      }
+	    ]
+	  },
+	  {
+	    "package_type": "maven",
+	    "group_id": "org.apache.tomcat",
+	    "artifact_id": "tomcat-tribes",
+	    "source": "test-family-db",
+	    "vulnerabilities": [
+	      {
+	        "id": "CVE-TEST-TOMCAT-TRIBES",
+	        "severity": "medium",
+	        "affected_range": ">=8.0,<9.0",
+	        "operation": "upsert"
+	      }
+	    ]
+	  }
+	]`)
+	if err := os.WriteFile(dbPath, content, 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	index, err := db.Load(dbPath)
+	if err != nil {
+		t.Fatalf("db.Load failed: %v", err)
+	}
+
+	service := New(index, "test-matcher")
+	response := service.Match(api.MatchRequest{
+		RequestID:     "session-family-1",
+		SchemaVersion: "1.0",
+		ScanMode:      "full",
+		Agent:         api.Agent{ID: "001"},
+		Components: []api.ComponentInput{
+			{
+				InventoryID:    "runtime-java:family-1",
+				GroupID:        "org.apache.tomcat",
+				PackageName:    "Apache Tomcat",
+				Version:        "8.5.82",
+				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/catalina.jar",
+				EvidenceSource: "manifest",
+				Confidence:     "medium",
+			},
+			{
+				InventoryID:    "runtime-java:family-2",
+				PackageName:    "Apache Tomcat",
+				Version:        "8.5.82",
+				RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/catalina-tribes.jar",
+				EvidenceSource: "manifest",
+				Confidence:     "medium",
+			},
+		},
+	})
+
+	if len(response.Matches) != 2 {
+		t.Fatalf("expected 2 family-candidate matches, got %d", len(response.Matches))
+	}
+	if response.Matches[0].Component.ArtifactID != "tomcat-catalina" {
+		t.Fatalf("unexpected first artifact id: %s", response.Matches[0].Component.ArtifactID)
+	}
+	if response.Matches[1].Component.ArtifactID != "tomcat-tribes" {
+		t.Fatalf("unexpected second artifact id: %s", response.Matches[1].Component.ArtifactID)
+	}
+	if response.Matches[0].Vulnerabilities[0].ID != "CVE-TEST-TOMCAT-CATALINA" {
+		t.Fatalf("unexpected first vulnerability id: %s", response.Matches[0].Vulnerabilities[0].ID)
+	}
+	if response.Matches[1].Vulnerabilities[0].ID != "CVE-TEST-TOMCAT-TRIBES" {
+		t.Fatalf("unexpected second vulnerability id: %s", response.Matches[1].Vulnerabilities[0].ID)
 	}
 }
 

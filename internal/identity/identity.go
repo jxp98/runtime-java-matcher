@@ -81,6 +81,10 @@ func BuildArtifactCandidates(explicitArtifact string, packageName string, pathIn
 	}
 	appendCandidate("runtime_path", runtimeArtifact, runtimePriority)
 
+	for _, candidate := range buildRuntimeFamilyCandidates(trimmedExplicitArtifact, pathArtifact, runtimeArtifact, runtimePath) {
+		appendCandidate(candidate.Source, candidate.Value, candidate.Priority)
+	}
+
 	packagePriority := 55
 	if looksDisplayName(trimmedPackageName) {
 		packagePriority = 35
@@ -168,4 +172,123 @@ func looksDisplayName(value string) bool {
 		}
 	}
 	return false
+}
+
+func buildRuntimeFamilyCandidates(explicitArtifact string, pathArtifact string, runtimeArtifact string, runtimePath string) []ArtifactCandidate {
+	familyStems := extractRuntimeFamilyStems(runtimePath)
+	if len(familyStems) == 0 {
+		return nil
+	}
+
+	baseArtifacts := make([]string, 0, 3)
+	appendBaseArtifact := func(value string) {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" || looksDisplayName(trimmed) {
+			return
+		}
+		for _, existing := range baseArtifacts {
+			if strings.EqualFold(existing, trimmed) {
+				return
+			}
+		}
+		baseArtifacts = append(baseArtifacts, trimmed)
+	}
+
+	appendBaseArtifact(pathArtifact)
+	appendBaseArtifact(runtimeArtifact)
+	appendBaseArtifact(explicitArtifact)
+	if len(baseArtifacts) == 0 {
+		return nil
+	}
+
+	result := make([]ArtifactCandidate, 0, len(familyStems)*len(baseArtifacts)*2)
+	for familyIndex, familyStem := range familyStems {
+		shortFamilyStem := trailingArtifactToken(familyStem)
+		for _, artifact := range baseArtifacts {
+			normalizedArtifact := normalizeArtifactToken(artifact)
+			if !hasFamilyPrefix(normalizedArtifact, familyStem) && !hasFamilyPrefix(normalizedArtifact, shortFamilyStem) {
+				result = append(result, ArtifactCandidate{
+					Value:    familyStem + "-" + artifact,
+					Source:   "runtime_family_prefix",
+					Priority: 68 - familyIndex,
+				})
+			}
+
+			if suffix := trailingArtifactToken(artifact); suffix != "" && !strings.EqualFold(suffix, artifact) {
+				result = append(result, ArtifactCandidate{
+					Value:    familyStem + "-" + suffix,
+					Source:   "runtime_family_suffix",
+					Priority: 66 - familyIndex,
+				})
+			}
+		}
+	}
+
+	return result
+}
+
+func hasFamilyPrefix(artifact string, familyStem string) bool {
+	if artifact == "" || familyStem == "" {
+		return false
+	}
+	return artifact == familyStem || strings.HasPrefix(artifact, familyStem+"-")
+}
+
+func extractRuntimeFamilyStems(runtimePath string) []string {
+	trimmed := strings.TrimSpace(runtimePath)
+	if trimmed == "" {
+		return nil
+	}
+
+	segments := strings.Split(strings.ReplaceAll(trimmed, "\\", "/"), "/")
+	stems := make([]string, 0, len(segments)*2)
+	seen := make(map[string]struct{})
+	appendStem := func(value string) {
+		normalized := normalizeArtifactToken(value)
+		if normalized == "" {
+			return
+		}
+		if _, ok := seen[normalized]; ok {
+			return
+		}
+		seen[normalized] = struct{}{}
+		stems = append(stems, normalized)
+	}
+
+	for _, segment := range segments {
+		segment = strings.TrimSpace(segment)
+		if segment == "" {
+			continue
+		}
+		familyStem, version := inferFromPath(segment + ".jar")
+		if familyStem == "" || version == "" {
+			continue
+		}
+		appendStem(familyStem)
+		if shortStem := trailingArtifactToken(familyStem); shortStem != "" && !strings.EqualFold(shortStem, familyStem) {
+			appendStem(shortStem)
+		}
+	}
+
+	return stems
+}
+
+func trailingArtifactToken(value string) string {
+	normalized := normalizeArtifactToken(value)
+	if normalized == "" {
+		return ""
+	}
+	if index := strings.LastIndex(normalized, "-"); index >= 0 && index+1 < len(normalized) {
+		return normalized[index+1:]
+	}
+	return normalized
+}
+
+func normalizeArtifactToken(value string) string {
+	replacer := strings.NewReplacer("_", "-", ".", "-", " ", "-")
+	normalized := strings.ToLower(strings.TrimSpace(replacer.Replace(value)))
+	for strings.Contains(normalized, "--") {
+		normalized = strings.ReplaceAll(normalized, "--", "-")
+	}
+	return strings.Trim(normalized, "-")
 }
