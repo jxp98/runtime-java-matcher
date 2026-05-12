@@ -129,3 +129,43 @@ func TestResolveComponentCanonicalizesManifestCandidateAgainstJavaDB(t *testing.
 		t.Fatalf("unexpected purl: %q", resolved.PURL)
 	}
 }
+
+func TestResolveComponentCanonicalizesAfterGroupLookup(t *testing.T) {
+	service := &Service{javaDB: &fakeJavaDB{
+		byArtifact: map[string][]javaTypes.Index{
+			"catalina@8.5.82#jar": {
+				{GroupID: "org.apache.tomcat", ArtifactID: "catalina", Version: "8.5.82"},
+			},
+			"tomcat-catalina@8.5.82#jar": {
+				{GroupID: "org.apache.tomcat", ArtifactID: "tomcat-catalina", Version: "8.5.82"},
+			},
+		},
+	}}
+	component := normalizeComponent(api.ComponentInput{
+		PackageName:    "Apache Tomcat",
+		Version:        "8.5.82",
+		RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/catalina.jar",
+		EvidenceSource: "manifest",
+		Confidence:     "medium",
+	})
+
+	resolved, confidence, source, ok := service.resolveComponent(component, buildArtifactCandidates(component))
+	if !ok {
+		t.Fatal("expected component to resolve after group lookup")
+	}
+	if confidence != "medium" {
+		t.Fatalf("unexpected confidence: %q", confidence)
+	}
+	if source != "artifact_version_lookup_canonical" {
+		t.Fatalf("unexpected source: %q", source)
+	}
+	if resolved.GroupID != "org.apache.tomcat" {
+		t.Fatalf("unexpected group id: %q", resolved.GroupID)
+	}
+	if resolved.ArtifactID != "tomcat-catalina" {
+		t.Fatalf("unexpected artifact id: %q", resolved.ArtifactID)
+	}
+	if resolved.PURL != "pkg:maven/org.apache.tomcat/tomcat-catalina@8.5.82" {
+		t.Fatalf("unexpected purl: %q", resolved.PURL)
+	}
+}

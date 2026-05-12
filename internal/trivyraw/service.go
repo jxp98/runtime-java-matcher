@@ -65,6 +65,11 @@ type componentEvaluation struct {
 	notes              []string
 }
 
+type canonicalArtifactMatch struct {
+	candidate identity.ArtifactCandidate
+	artifact  string
+}
+
 type trivyMetadata struct {
 	Version      int    `json:"Version"`
 	UpdatedAt    string `json:"UpdatedAt"`
@@ -281,15 +286,24 @@ func (s *Service) resolveComponent(component normalizedComponent, candidates []i
 		for _, candidate := range candidates {
 			if groupID, ok := s.lookupGroupID(candidate.Value, component.Version); ok {
 				component.GroupID = groupID
+				source := "artifact_version_lookup"
+				if candidate.Source != "artifact_id" {
+					source = "artifact_version_candidate"
+				}
+				if canonicalArtifactID, _, ok := s.lookupCanonicalArtifact(component.GroupID, component.Version, candidates); ok {
+					component.ArtifactID = canonicalArtifactID
+					if component.PURL == "" {
+						component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
+					}
+					component.PackageType = valueOrDefault(component.PackageType, "jar")
+					return component, "medium", source + "_canonical", true
+				}
+
 				component.ArtifactID = candidate.Value
 				if component.PURL == "" {
 					component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
 				}
 				component.PackageType = valueOrDefault(component.PackageType, "jar")
-				source := "artifact_version_lookup"
-				if candidate.Source != "artifact_id" {
-					source = "artifact_version_candidate"
-				}
 				return component, "medium", source, true
 			}
 		}
@@ -360,8 +374,11 @@ func (s *Service) lookupGroupID(artifactID string, version string) (string, bool
 	maxCount := 0
 	resolvedGroupID := ""
 	for groupID, count := range groupCounts {
-		if count > maxCount {
+		if count > maxCount || (count == maxCount && resolvedGroupID != "" && groupID < resolvedGroupID) {
 			maxCount = count
+			resolvedGroupID = groupID
+		}
+		if count == maxCount && resolvedGroupID == "" {
 			resolvedGroupID = groupID
 		}
 	}
@@ -376,6 +393,7 @@ func (s *Service) lookupCanonicalArtifact(groupID string, version string, candid
 
 	normalizedGroupID := strings.TrimSpace(groupID)
 	normalizedVersion := strings.TrimSpace(version)
+	var best *canonicalArtifactMatch
 	for _, candidate := range candidates {
 		artifactID := strings.TrimSpace(candidate.Value)
 		if artifactID == "" {
@@ -393,15 +411,68 @@ func (s *Service) lookupCanonicalArtifact(groupID string, version string, candid
 			if canonicalArtifactID == "" {
 				continue
 			}
-			source := "group_artifact_canonical"
-			if candidate.Source != "artifact_id" {
-				source = "group_artifact_candidate"
+			current := &canonicalArtifactMatch{candidate: candidate, artifact: canonicalArtifactID}
+			if best == nil || preferCanonicalCandidate(current, best) {
+				best = current
 			}
-			return canonicalArtifactID, source, true
+			break
 		}
 	}
 
-	return "", "", false
+	if best == nil {
+		return "", "", false
+	}
+
+	source := "group_artifact_canonical"
+	if best.candidate.Source != "artifact_id" {
+		source = "group_artifact_candidate"
+	}
+	return best.artifact, source, true
+}
+
+func preferCanonicalCandidate(current *canonicalArtifactMatch, best *canonicalArtifactMatch) bool {
+	currentSourceScore := canonicalSourceScore(current.candidate.Source)
+	bestSourceScore := canonicalSourceScore(best.candidate.Source)
+	if currentSourceScore != bestSourceScore {
+		return currentSourceScore > bestSourceScore
+	}
+
+	currentTokenScore := canonicalArtifactTokenScore(current.artifact)
+	bestTokenScore := canonicalArtifactTokenScore(best.artifact)
+	if currentTokenScore != bestTokenScore {
+		return currentTokenScore > bestTokenScore
+	}
+
+	if current.candidate.Priority != best.candidate.Priority {
+		return current.candidate.Priority > best.candidate.Priority
+	}
+
+	if len(current.artifact) != len(best.artifact) {
+		return len(current.artifact) > len(best.artifact)
+	}
+
+	return current.artifact < best.artifact
+}
+
+func canonicalSourceScore(source string) int {
+	switch strings.TrimSpace(source) {
+	case "runtime_family_prefix", "runtime_family_suffix":
+		return 3
+	case "path_in_archive", "runtime_path", "artifact_id":
+		return 2
+	case "package_name":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func canonicalArtifactTokenScore(artifact string) int {
+	trimmed := strings.TrimSpace(artifact)
+	if trimmed == "" {
+		return 0
+	}
+	return strings.Count(trimmed, "-") + 1
 }
 
 func (s *Service) lookupExactCoordinate(groupID string, artifactID string, version string) (string, bool) {
