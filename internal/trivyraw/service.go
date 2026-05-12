@@ -33,9 +33,15 @@ type Service struct {
 	vulnDir string
 	javaDir string
 	vulnDB  trivyvdb.Config
-	javaDB  *trivyjdb.DB
+	javaDB  javaIndexDB
 	source  string
 	health  api.HealthResponse
+}
+
+type javaIndexDB interface {
+	Close() error
+	SelectIndexBySha1(string) (javaTypes.Index, error)
+	SelectIndexesByArtifactIDAndFileType(string, string, javaTypes.ArchiveType) ([]javaTypes.Index, error)
 }
 
 type normalizedComponent struct {
@@ -228,6 +234,8 @@ func (s *Service) evaluateComponent(input api.ComponentInput) componentEvaluatio
 }
 
 func (s *Service) resolveComponent(component normalizedComponent, candidates []identity.ArtifactCandidate) (normalizedComponent, string, string, bool) {
+	purlProvided := strings.TrimSpace(component.PURL) != ""
+
 	if component.PURL != "" {
 		if groupID, artifactID, versionValue, ok := parseMavenPURL(component.PURL); ok {
 			if component.GroupID == "" {
@@ -287,12 +295,27 @@ func (s *Service) resolveComponent(component normalizedComponent, candidates []i
 		}
 	}
 
+	if component.GroupID != "" && component.ArtifactID != "" && component.Version != "" {
+		if canonicalArtifactID, ok := s.lookupExactCoordinate(component.GroupID, component.ArtifactID, component.Version); ok {
+			component.ArtifactID = canonicalArtifactID
+			if component.PURL == "" {
+				component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
+			}
+			component.PackageType = valueOrDefault(component.PackageType, "jar")
+			source := "group_artifact_verified"
+			if purlProvided {
+				source = "purl_verified"
+			}
+			return component, "high", source, true
+		}
+	}
+
 	if component.GroupID != "" && component.ArtifactID != "" {
 		if component.PURL == "" {
 			component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
 		}
 		component.PackageType = valueOrDefault(component.PackageType, "jar")
-		return component, "high", "group_artifact", true
+		return component, "low", "group_artifact_unverified", false
 	}
 
 	return component, "", "", false
@@ -379,6 +402,35 @@ func (s *Service) lookupCanonicalArtifact(groupID string, version string, candid
 	}
 
 	return "", "", false
+}
+
+func (s *Service) lookupExactCoordinate(groupID string, artifactID string, version string) (string, bool) {
+	if s.javaDB == nil || strings.TrimSpace(groupID) == "" || strings.TrimSpace(artifactID) == "" || strings.TrimSpace(version) == "" {
+		return "", false
+	}
+
+	indexes, err := s.javaDB.SelectIndexesByArtifactIDAndFileType(strings.TrimSpace(artifactID), strings.TrimSpace(version), javaTypes.JarType)
+	if err != nil || len(indexes) == 0 {
+		return "", false
+	}
+
+	normalizedGroupID := strings.TrimSpace(groupID)
+	normalizedArtifactID := strings.TrimSpace(artifactID)
+	for _, index := range indexes {
+		if !strings.EqualFold(strings.TrimSpace(index.GroupID), normalizedGroupID) {
+			continue
+		}
+		canonicalArtifactID := strings.TrimSpace(index.ArtifactID)
+		if canonicalArtifactID == "" {
+			continue
+		}
+		if !strings.EqualFold(canonicalArtifactID, normalizedArtifactID) {
+			continue
+		}
+		return canonicalArtifactID, true
+	}
+
+	return "", false
 }
 
 func (s *Service) lookupVulnerabilities(groupID string, artifactID string, installedVersion string, confidence string) []api.Vulnerability {
