@@ -262,12 +262,10 @@ func (s *Service) resolveComponent(component normalizedComponent, candidates []i
 
 	if (component.GroupID == "" || component.ArtifactID == "") && component.SHA1 != "" {
 		if groupID, artifactID, versionValue, ok := s.lookupBySHA1(component.SHA1); ok {
-			component.GroupID = valueOrDefault(component.GroupID, groupID)
-			component.ArtifactID = valueOrDefault(component.ArtifactID, artifactID)
-			component.Version = valueOrDefault(component.Version, versionValue)
-			if component.PURL == "" {
-				component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
-			}
+			component.GroupID = valueOrDefault(groupID, component.GroupID)
+			component.ArtifactID = valueOrDefault(artifactID, component.ArtifactID)
+			component.Version = valueOrDefault(versionValue, component.Version)
+			component.PURL = buildMavenPURL(component.GroupID, component.ArtifactID, component.Version)
 			component.PackageType = valueOrDefault(component.PackageType, "jar")
 			return component, "high", "sha1", component.GroupID != "" && component.ArtifactID != ""
 		}

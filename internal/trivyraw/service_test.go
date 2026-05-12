@@ -169,3 +169,46 @@ func TestResolveComponentCanonicalizesAfterGroupLookup(t *testing.T) {
 		t.Fatalf("unexpected purl: %q", resolved.PURL)
 	}
 }
+
+func TestResolveComponentSHA1OverridesWeakFilenameArtifact(t *testing.T) {
+	service := &Service{javaDB: &fakeJavaDB{
+		bySHA1: map[string]javaTypes.Index{
+			"fb5dbc35dcef6abd9e619b9a6bd56de10b2d7e86": {
+				GroupID:    "org.apache.tomcat",
+				ArtifactID: "tomcat-catalina",
+				Version:    "8.5.82",
+			},
+		},
+	}}
+	component := normalizeComponent(api.ComponentInput{
+		Version:        "8.5.82",
+		RuntimePath:    "/opt/apache-tomcat-8.5.82/lib/catalina.jar",
+		EvidenceSource: "manifest+filename",
+		Confidence:     "medium",
+		SHA1:           "fb5dbc35dcef6abd9e619b9a6bd56de10b2d7e86",
+	})
+
+	if component.ArtifactID != "catalina" {
+		t.Fatalf("expected weak filename artifact before sha1 override, got %q", component.ArtifactID)
+	}
+
+	resolved, confidence, source, ok := service.resolveComponent(component, buildArtifactCandidates(component))
+	if !ok {
+		t.Fatal("expected component to resolve by sha1")
+	}
+	if confidence != "high" {
+		t.Fatalf("unexpected confidence: %q", confidence)
+	}
+	if source != "sha1" {
+		t.Fatalf("unexpected source: %q", source)
+	}
+	if resolved.GroupID != "org.apache.tomcat" {
+		t.Fatalf("unexpected group id: %q", resolved.GroupID)
+	}
+	if resolved.ArtifactID != "tomcat-catalina" {
+		t.Fatalf("unexpected artifact id: %q", resolved.ArtifactID)
+	}
+	if resolved.PURL != "pkg:maven/org.apache.tomcat/tomcat-catalina@8.5.82" {
+		t.Fatalf("unexpected purl: %q", resolved.PURL)
+	}
+}
